@@ -23,7 +23,7 @@ def U_n(c, T, param):
     U_ref = (0.7222 + 0.1387 * c + 0.029 * c ** 0.5 - 0.0172 / c
              + 0.0019 / (c ** 1.5) + 0.2808 * np.exp(0.9 - 15 * c)
              - 0.7984 * np.exp(0.4465 * c - 0.4108))
-    result = (U_ref / param.Phi_star) + T * dUdT_n(c, T, param)
+    result = (U_ref / param.Phi_star) + T * dUdT_n(c, param)
     return result
 
 
@@ -47,7 +47,7 @@ def U_p(c, T, param):
               - 462.471 * c ** 8 + 433.434 * c ** 10)
              / (-1 + 18.933 * c ** 2 - 79.532 * c ** 4 + 37.311 * c ** 6
                 - 73.083 * c ** 8 + 95.96 * c ** 10))
-    result = (U_ref / param.Phi_star) + T * dUdT_p(c, T, param)
+    result = (U_ref / param.Phi_star) + T * dUdT_p(c, param)
     return result
 
 

@@ -5,6 +5,7 @@ from dolfin import plot
 import heat_generation as heat
 from current_profile import current
 import coefficient_functions as coeff
+import open_circuit_potentials as ocp
 
 
 def get_vars(soln, mesh):
@@ -242,7 +243,8 @@ def plot_temperature(soln, mesh, param):
 
     # Plot temperature
     fig = plt.figure()
-    plt.plot(mesh.t * param.tau_d_star, T0 + param.delta * T1)
+    plt.plot(mesh.t * param.tau_d_star,
+             (T0 + param.delta * T1)*param.Delta_T_star + param.T_inf_star)
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.ylabel(r'$T$', fontsize=11)
     fig.tight_layout()
@@ -270,4 +272,30 @@ def plot_psi_W(psi, W, R_CC, param):
     fig.suptitle(r'$\alpha^{{\prime}} = {:.3f}$. '
                  '$R_{{\mathrm{{CC}}}}$ = {:.3f}'
                  .format(param.alpha_prime, R_CC), fontsize=16)
+    fig.tight_layout()
+
+
+def plot_OCP(c, T, param):
+    # Font stuff
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    # Plot OCP and entropic coefficient at a fixed T
+    fig = plt.figure()
+    plt.subplot(2, 2, 1)
+    plt.plot(c, ocp.U_n(c, T, param))
+    plt.xlabel(r'$c_{{\mathrm{{n}}}}$')
+    plt.ylabel(r'$U_{{\mathrm{{n}}}}$')
+    plt.subplot(2, 2, 3)
+    plt.plot(c, ocp.dUdT_n(c, param))
+    plt.xlabel(r'$c_{{\mathrm{{n}}}}$')
+    plt.ylabel(r'$\frac{{\mathrm{{d}} U_{{\mathrm{{n}}}}}}{{\mathrm{{d}}T}}$')
+    plt.subplot(2, 2, 2)
+    plt.plot(c, ocp.U_p(c, T, param))
+    plt.xlabel(r'$c_{{\mathrm{{p}}}}$')
+    plt.ylabel(r'$U_{{\mathrm{{p}}}}$')
+    plt.subplot(2, 2, 4)
+    plt.plot(c, ocp.dUdT_p(c, param))
+    plt.xlabel(r'$c_{{\mathrm{{p}}}}$')
+    plt.ylabel(r'$\frac{{\mathrm{{d}} U_{{\mathrm{{p}}}}}}{{\mathrm{{d}}T}}$')
     fig.tight_layout()

@@ -41,9 +41,12 @@ class Parameters(object):
             self.Phi_star = 1
 
             # Applied current density
-            self.I_app_1C = 2.3
-            self.I_star = (self.C_rate * self.I_app_1C
-                           / (self.Ly_star * self.Lz_star))
+            # self.I_app_1C = 2.3
+            # self.I_star = (self.C_rate * self.I_app_1C
+            #                / (self.Ly_star * self.Lz_star))
+            # Fudge to make leading-order SPMeCC current density equivalent
+            # to that applied in LIONSIMBA
+            self.I_star = 29.5 * (self.Ly_star / self.Lz_star)
 
             # Electrical conductivity
             self.sigma_cn_star = 5.96*1E7
@@ -101,8 +104,8 @@ class Parameters(object):
 
             # Thermal
             self.T_inf_star = 298.15
-            self.h_star = 10
-            self.h_tab_star = 10
+            self.h_star = 1
+            self.h_tab_star = 1
             self.Delta_T_star = self.I_star * self.Phi_star / self.h_star
 
             # Initial conditions
