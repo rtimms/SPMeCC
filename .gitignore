@@ -1,0 +1,18 @@
+*.txt
+*.pdf
+*.tmp
+/local/
+
+# don't ignore important .txt files
+!requirements*
+!LICENSE.txt
+
+# running files
+*.pyc
+*.py~
+.~lock*
+
+# Python cache
+*__pycache__/
+*.cache
+.ipynb_checkpoints/
