@@ -13,8 +13,11 @@ class Parameters(object):
         # Put C-rate in Parameters object
         self.C_rate = 1
 
+        # Put name in parameters object
+        self.name = name
+
         # Load up dimensional parameters
-        if name == 'mypouch':
+        if self.name == 'mypouch':
             # Geometry
             self.L_cn_star = 15*1E-6
             self.L_n_star = 63.4*1E-6
@@ -37,8 +40,24 @@ class Parameters(object):
 
             self.L_star = self.L_cn_star + self.Lx_star + self.L_cp_star
 
+            # Porosity
+            self.epsilon_n = 0.485
+            self.epsilon_s = 0.724
+            self.epsilon_p = 0.385
+            self.brug = 4
+
+            # Filler fractions
+            self.epsilon_f_n = 0.0326
+            self.epsilon_f_p = 0.025
+
             # Typical voltage drop
             self.Phi_star = 1
+
+            # Cutoff voltage
+            self.V_min = 2.5
+
+            # Cutover voltage
+            self.V_max = 4.3
 
             # Applied current density
             # self.I_app_1C = 2.3
@@ -54,6 +73,12 @@ class Parameters(object):
             self.sigma_p_star = 100
             self.sigma_cp_star = 3.55*1E7
 
+            # Rescale conductivity as in LIONSIMBA
+            self.sigma_n_star = (self.sigma_n_star
+                                 * (1 - self.epsilon_n - self.epsilon_f_n))
+            self.sigma_p_star = (self.sigma_p_star
+                                 * (1 - self.epsilon_p - self.epsilon_f_p))
+
             # Diffusivity
             self.D_n_tilde_star = 3.9*1E-14
             self.D_p_tilde_star = 1*1E-14
@@ -66,12 +91,6 @@ class Parameters(object):
             self.R_p_star = 2*1E-6
             self.a_n_star = 723600
             self.a_p_star = 885000
-
-            # Porosity
-            self.epsilon_n = 0.485
-            self.epsilon_s = 0.724
-            self.epsilon_p = 0.385
-            self.brug = 4
 
             # Electrochemistry
             self.m_n_star = 2 * 5.031*1E-11 * 96487
@@ -255,6 +274,101 @@ class Parameters(object):
                          + self.lambda_s * self.L_s
                          + self.lambda_p * self.L_p
                          + self.lambda_cp * self.L_cp) / self.L
+
+    def solid_diffusivity_n(self, c):
+        """
+        Calculates the solid diffusivity in the negative electrode particle as
+        a function of concentration.
+
+        Parameters
+        ----------
+        c: array_like
+            Array of concentration in each volume.
+
+        Returns
+        -------
+        array_like
+            The the value of the diffusivity at each given concentration.
+        """
+        return 1
+
+    def solid_diffusivity_p(self, c):
+        """
+        Calculates the solid diffusivity in the positive electrode particle as
+        a function of concentration.
+
+        Parameters
+        ----------
+        c: array_like
+            Array of concentration in each volume.
+
+        Returns
+        -------
+        array_like
+            The the value of the diffusivity at each given concentration.
+        """
+        return 1
+
+    def electrolyte_diffusivity(self, c):
+        """
+        Calculates the electrolyte diffusivity as a function of concentration.
+
+        Parameters
+        ----------
+        c: array_like
+            Array of concentration in each volume.
+
+        Returns
+        -------
+        array_like
+            The the value of the diffusivity at each given concentration.
+        """
+        if self.name == 'mypouch':
+            # From LIONSIMBA at ambient temperature
+            # Make c dimensional
+            c = c * self.c_e_typ_star
+            exponent = (-4.43 - (54 / (self.T_inf_star - 229 - 5 * 1E-3 * c))
+                        - 0.22 * 1E-3 * c)
+            D_e = 1E-4 * 10 ** exponent
+
+            # Make D_e dimensionless
+            D_e = D_e / self.D_e_typ_star  # Make dimensionless
+        else:
+            raise ValueError('Paramters set name not recognised!')
+        return D_e
+
+    def electrolyte_conductivity(self, c):
+        """
+        Calculates the electrolyte conductivity as a function of concentration.
+
+        Parameters
+        ----------
+        c: array_like
+            Array of concentration in each volume.
+
+        Returns
+        -------
+        array_like
+            The the value of the conductivity at each given concentration.
+        """
+        if self.name == 'mypouch':
+            # From LIONSIMBA at ambient temperature
+            # Make c dimensional
+            c = c * self.c_e_typ_star
+
+            temp = (-10.5 + 0.668 * 1E-3 * c + 0.494 * 1E-6 * c ** 2
+                    + (0.074 - 1.78 * 1E-5 * c - 8.86 * 1E-10 * c ** 2)
+                    * self.T_inf_star
+                    + (-6.96 * 1E-5 + 2.8 * 1E-8 * c) * self.T_inf_star ** 2)
+            kappa_e = 1E-4 * c * temp ** 2
+
+            # Make kappa_e dimensionless
+            kappa_e = (kappa_e * self.Rg_star * self.T_inf_star
+                       / self.F_star ** 2 / self.D_e_typ_star
+                       / self.c_e_typ_star)
+        else:
+            raise ValueError('Paramters set name not recognised!')
+        return kappa_e
 
 
 # Paramters from draft. Note that I had made a mistake and the values for

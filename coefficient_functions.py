@@ -1,4 +1,4 @@
-import numpy as np
+#  import numpy as np
 
 
 def solid_diffusivity_n(c, param):
@@ -57,7 +57,15 @@ def electrolyte_diffusivity(c, param):
     array_like
         The the value of the diffusivity at each given concentration.
     """
-    D_e = np.exp(- 0.65 * c)
+    # From LIONSIMBA at ambient temperature
+    # Make c dimensional
+    c = c * param.c_e_typ_star
+    exponent = (-4.43 - (54 / (param.T_inf_star - 229 - 5 * 1E-3 * c))
+                - 0.22 * 1E-3 * c)
+    D_e = 1E-4 * 10 ** exponent
+
+    # Make D_e dimensionless
+    D_e = D_e / param.D_e_typ_star  # Make dimensionless
     return D_e
 
 
@@ -77,5 +85,17 @@ def electrolyte_conductivity(c, param):
     array_like
         The the value of the conductivity at each given concentration.
     """
-    kappa_e = 0.0911 + 1.9101 * c - 1.052 * c ** 2 + 0.1554 * c ** 3
+    # From LIONSIMBA at ambient temperature
+    # Make c dimensional
+    c = c * param.c_e_typ_star
+
+    temp = (-10.5 + 0.668 * 1E-3 * c + 0.494 * 1E-6 * c ** 2
+            + (0.074 - 1.78 * 1E-5 * c - 8.86 * 1E-10 * c ** 2)
+            * param.T_inf_star
+            + (-6.96 * 1E-5 + 2.8 * 1E-8 * c) * param.T_inf_star ** 2)
+    kappa_e = 1E-4 * c * temp ** 2
+
+    # Make kappa_e dimensionless
+    kappa_e = (kappa_e * param.Rg_star * param.T_inf_star
+               / param.F_star ** 2 / param.D_e_typ_star / param.c_e_typ_star)
     return kappa_e

@@ -1,7 +1,6 @@
 import numpy as np
 
 import open_circuit_potentials as ocp
-import coefficient_functions as coeff
 
 
 def rxn_n_0(T0, c_n_surf, param, I_app):
@@ -159,7 +158,7 @@ def ohmic_n_1(c_e_n_bar, c_e_neg_sep, param, I_app):
     electrolyte = ((I_app * param.Ly) ** 2
                    * (param.nu / param.Lambda
                       / (param.epsilon_n ** param.brug)
-                      / coeff.electrolyte_conductivity(1, param))
+                      / param.electrolyte_conductivity(1))
                    * (param.L_n / 3)
                    - (I_app * param.Ly)
                    * (2*(1 - param.t_plus) / param.Lambda)
@@ -191,7 +190,7 @@ def ohmic_s_1(c_e_neg_sep, c_e_pos_sep, param, I_app):
     result = ((I_app * param.Ly) ** 2
               * (param.nu / param.Lambda
               / (param.epsilon_s ** param.brug)
-              / coeff.electrolyte_conductivity(1, param))
+              / param.electrolyte_conductivity(1))
               * param.L_s
               - (I_app * param.Ly) * (2*(1 - param.t_plus) / param.Lambda)
               * (c_e_pos_sep - c_e_neg_sep))
@@ -221,7 +220,7 @@ def ohmic_p_1(c_e_p_bar, c_e_pos_sep, param, I_app):
     electrolyte = ((I_app * param.Ly) ** 2
                    * (param.nu / param.Lambda
                       / (param.epsilon_p ** param.brug)
-                      / coeff.electrolyte_conductivity(1, param))
+                      / param.electrolyte_conductivity(1))
                    * (param.L_p / 3)
                    - (I_app * param.Ly)
                    * (2*(1 - param.t_plus) / param.Lambda)
