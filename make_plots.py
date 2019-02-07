@@ -401,10 +401,14 @@ def plot_voltage_LIONSIMBA(soln, mesh, R_cc, param):
     t = soln.t * param.tau_d_star
 
     # LIONSIMBA results
-    if param.h_star > 1E-3:
+    if param.h_star > 0.5:
         t_LION = np.linspace(0, 3000, 10)
         V_LION = np.array([4.0030, 3.9396, 3.8904, 3.8474, 3.8100,
                            3.7770, 3.7460, 3.7125, 3.6605, 3.5408])
+    elif param.h_star > 0.5*1E-2:
+        t_LION = np.linspace(0, 2400, 9)
+        V_LION = np.array([4.0030, 3.9398, 3.8908, 3.8478, 3.8105,
+                           3.7773, 3.7460, 3.7114, 3.6559])
     else:
         t_LION = np.linspace(0, 2400, 9)
         V_LION = np.array([4.0030, 3.9398, 3.8908, 3.8479, 3.8105,
@@ -431,10 +435,14 @@ def plot_temperature_LIONSIMBA(soln, mesh, param):
     c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1 = get_vars_time(soln.y, mesh)
 
     # LIONSIMBA results
-    if param.h_star > 1E-3:
+    if param.h_star > 0.5:
         t_LION = np.linspace(0, 3000, 10)
         T_LION = np.array([298.1500, 299.1755, 299.7207, 300.0215, 300.1525,
                            300.2436, 300.4308, 300.7147, 301.1607, 301.7106])
+    elif param.h_star > 0.5*1E-2:
+        t_LION = np.linspace(0, 2400, 9)
+        T_LION = np.array([298.1500, 300.0446, 302.6419, 305.5707, 308.5822,
+                           311.6190, 314.8875, 318.5352, 322.8777])
     else:
         t_LION = np.linspace(0, 2400, 9)
         T_LION = np.array([298.1500, 300.0582, 302.7058, 305.7287, 308.8814,
