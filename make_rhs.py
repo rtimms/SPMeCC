@@ -316,7 +316,9 @@ def rhs_temperature_spme(t, T0, T1, c_n_surf, c_p_surf,
                          c_e_n_bar, c_e_p_bar, c_e_neg_sep, c_e_pos_sep,
                          param, I_app):
     """
-    Computes the rhs needed for the governing ODEs for the temperature.
+    Computes the rhs needed for the governing ODEs for the temperature
+    for the 1D comparison with LIONSIMBA.
+    (Only cooling at edges x = 1+L_cp and -L_cp, not from other sides.)
     Parameters
     ----------
     t: float
@@ -367,21 +369,14 @@ def rhs_temperature_spme(t, T0, T1, c_n_surf, c_p_surf,
                + heat.rev_n_1(T1, c_n_surf, param, I_app)
                + heat.rev_p_1(T1, c_p_surf, param, I_app))
     Q_loss_0 = - 2 * param.h_prime * T0 / param.L
-    Q_loss_1_bulk = - 2 * param.h_prime * T1 / param.L
-    Q_loss_1_tab = (- (param.h_tab_prime * (param.L_cn + param.L_cp)
-                       + param.h_prime) * (param.L_tab_n + param.L_tab_p)
-                    * T0) / param.L / param.Ly
-    Q_loss_1_no_tab = (- (2 * (param.Ly + 1)
-                          - (param.L_tab_n + param.L_tab_p))
-                       * param.h_tab * T0) / param.Ly
-    Q_loss_1 = Q_loss_1_bulk + Q_loss_1_tab + Q_loss_1_no_tab
+    Q_loss_1 = - 2 * param.h_prime * T1 / param.L
 
     # Compute discretised dT/dt
     dT0_dt = ((param.gamma_th / param.rho)
               * (param.B * Q_bar_0 + Q_loss_0)*np.ones(1))
 
     dT1_dt = ((param.gamma_th / param.rho)
-              * (param.B * Q_bar_1 + Q_loss_1)*np.ones(1))
+              * (param.B * Q_bar_1 + 0*Q_loss_1)*np.ones(1))
 
     dT_dt = np.concatenate((dT0_dt, dT1_dt))
 

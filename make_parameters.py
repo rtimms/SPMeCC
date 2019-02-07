@@ -19,11 +19,11 @@ class Parameters(object):
         # Load up dimensional parameters
         if self.name == 'mypouch':
             # Geometry
-            self.L_cn_star = 15*1E-6
-            self.L_n_star = 63.4*1E-6
-            self.L_s_star = 25*1E-6
-            self.L_p_star = 55.3*1E-6
-            self.L_cp_star = 20*1E-6
+            self.L_cn_star = 10.0*1E-6
+            self.L_n_star = 88.0*1E-6
+            self.L_s_star = 25.0*1E-6
+            self.L_p_star = 80.0*1E-6
+            self.L_cp_star = 10*1E-6
 
             self.L_tab_n_star = 40*1E-3
             self.L_tab_p_star = 40*1E-3
@@ -41,10 +41,16 @@ class Parameters(object):
             self.L_star = self.L_cn_star + self.Lx_star + self.L_cp_star
 
             # Porosity
-            self.epsilon_n = 0.485
-            self.epsilon_s = 0.724
-            self.epsilon_p = 0.385
-            self.brug = 4
+            # self.epsilon_n = 0.485
+            # self.epsilon_s = 0.724
+            # self.epsilon_p = 0.385
+            # self.brug = 4
+
+            # Porosity
+            self.epsilon_n = 0.3
+            self.epsilon_s = 1.0
+            self.epsilon_p = 0.3
+            self.brug = 1.5
 
             # Filler fractions
             self.epsilon_f_n = 0.0326
@@ -65,7 +71,7 @@ class Parameters(object):
             #                / (self.Ly_star * self.Lz_star))
             # Fudge to make leading-order SPMeCC current density equivalent
             # to that applied in LIONSIMBA
-            self.I_star = 29.5 * (self.Ly_star / self.Lz_star)
+            self.I_star = 30 * (self.Ly_star / self.Lz_star)
 
             # Electrical conductivity
             self.sigma_cn_star = 5.96*1E7
@@ -129,8 +135,8 @@ class Parameters(object):
 
             # Initial conditions
             self.c_e_typ_star = 1e3
-            self.c_n_0_star = 26128
-            self.c_p_0_star = 25751
+            self.c_n_0_star = 22405
+            self.c_p_0_star = 29252
             self.T_0_star = self.T_inf_star
 
         else:
@@ -327,7 +333,7 @@ class Parameters(object):
             # From LIONSIMBA at ambient temperature
             # Make c dimensional
             c = c * self.c_e_typ_star
-            exponent = (-4.43 - (54 / (self.T_inf_star - 229 - 5 * 1E-3 * c))
+            exponent = (-4.43 - (54 / (self.T_inf_star - 229 - 5*1E-3 * c))
                         - 0.22 * 1E-3 * c)
             D_e = 1E-4 * 10 ** exponent
 

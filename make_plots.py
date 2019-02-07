@@ -267,17 +267,26 @@ def plot_electrolyte_concentration(soln, mesh, param):
         # Evaluate I_app
         I_app = current(soln.t[i-1], param)
         plt.clf()
-        plt.plot((mesh.x_n[1:] + mesh.x_n[0:-1])/2, c_e_n[:, i], 'b-')
-        plt.plot(mesh.x_n, c_e_n_steady * I_app, 'r--')
-        plt.plot((mesh.x_s[1:] + mesh.x_s[0:-1])/2, c_e_s[:, i], 'b-')
-        plt.plot(mesh.x_s, c_e_s_steady * I_app, 'r--')
-        plt.plot((mesh.x_p[1:] + mesh.x_p[0:-1])/2, c_e_p[:, i], 'b-',
+        plt.plot((mesh.x_n[1:] + mesh.x_n[0:-1])/2,
+                 param.c_e_typ_star * param.delta * c_e_n[:, i], 'b-')
+        plt.plot(mesh.x_n,
+                 param.c_e_typ_star * param.delta * c_e_n_steady * I_app,
+                 'r--')
+        plt.plot((mesh.x_s[1:] + mesh.x_s[0:-1])/2,
+                 param.c_e_typ_star * param.delta * c_e_s[:, i], 'b-')
+        plt.plot(mesh.x_s,
+                 param.c_e_typ_star * param.delta * c_e_s_steady * I_app,
+                 'r--')
+        plt.plot((mesh.x_p[1:] + mesh.x_p[0:-1])/2,
+                 param.c_e_typ_star * param.delta * c_e_p[:, i], 'b-',
                  label="Unsteady")
-        plt.plot(mesh.x_p, c_e_p_steady * I_app, 'r--',
-                 label="Steady")
+        plt.plot(mesh.x_p,
+                 param.c_e_typ_star * param.delta * c_e_p_steady * I_app,
+                 'r--', label="Steady")
         plt.xlim([0, 1])
         plt.xlabel(r'$x$', fontsize=11)
-        plt.ylabel(r'$c_{{\mathrm{{e}}}}^1', fontsize=11)
+        plt.ylabel(r'$c_{{\mathrm{{e}}}}^* - c_{{\mathrm{{e,typ}}}}^*$'
+                   r'[mol/m$^3$]', fontsize=11)
         plt.legend()
         fig.tight_layout()
         plt.pause(1)
@@ -381,4 +390,57 @@ def plot_OCP(c, T, param):
     plt.plot(c, ocp.dUdT_p(c, param) * param.Phi_star / param.Delta_T_star)
     plt.xlabel(r'$c_{{\mathrm{{p}}}}$')
     plt.ylabel(r'$\frac{{\mathrm{{d}} U_{{\mathrm{{p}}}}}}{{\mathrm{{d}}T}}$')
+    fig.tight_layout()
+
+
+def plot_voltage_LIONSIMBA(soln, mesh, R_cc, param):
+    # Create voltage object
+    voltage = Voltage(soln, mesh, R_cc, param)
+
+    # Convert to dimensional time
+    t = soln.t * param.tau_d_star
+
+    # LIONSIMBA results
+    t_LION = np.linspace(0, 3000, 10)
+    V_LION = np.array([4.0030, 3.9396, 3.8904, 3.8474, 3.8100,
+                       3.7770, 3.7460, 3.7125, 3.6605, 3.5408])
+    # Font stuff
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    # Make plots
+    fig = plt.figure()
+    plt.plot(t, voltage.v_term, label="V")
+    plt.plot(t_LION, V_LION, 'o', label='LIONSIMBA')
+    plt.xlim([t[0], t[-1]])
+    plt.ylim([param.V_min, param.V_max])
+    plt.xlabel(r'$t$ [s]', fontsize=11)
+    plt.ylabel('Voltage [V]', fontsize=11)
+    plt.title('Voltage', fontsize=11)
+    plt.legend()
+    fig.tight_layout()
+
+
+def plot_temperature_LIONSIMBA(soln, mesh, param):
+    # Get variables
+    c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1 = get_vars_time(soln.y, mesh)
+
+    # LIONSIMBA results
+    t_LION = np.linspace(0, 3000, 10)
+    T_LION = np.array([298.1500, 298.9862, 299.4618, 299.7211, 299.8660,
+                       299.9606, 300.0554, 300.1712, 300.2703, 300.3863])
+
+    # Font stuff
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    # Plot temperature
+    fig = plt.figure()
+    plt.plot(soln.t * param.tau_d_star,
+             T0 * param.Delta_T_star + param.T_inf_star,
+             label=r'$T$')
+    plt.plot(t_LION, T_LION, 'o', label='LIONSIMBA')
+    plt.xlabel(r'$t$ [s]', fontsize=11)
+    plt.ylabel(r'$T$', fontsize=11)
+    plt.legend()
     fig.tight_layout()

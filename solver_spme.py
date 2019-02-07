@@ -49,7 +49,7 @@ def voltage_cutoff_wrapper(t, y):
 voltage_cutoff_wrapper.terminal = True
 
 # Solve IVP
-print('Solving SPMeCC.')
+print('Solving SPMe.')
 soln = solve_ivp(
      lambda t, y: rhs_spme(t, y, mesh, param),
      [mesh.t[0], mesh.t[-1]],
@@ -64,10 +64,12 @@ makeplots = 'True'
 
 if makeplots == 'True':
     # Static plots
-    myplot.plot_OCP(np.linspace(0, 1, 100), 0, param)
-    myplot.plot_surface_concentration(soln, mesh, param)
-    myplot.plot_temperature(soln, mesh, param)
-    myplot.plot_heat_generation(soln, mesh, 0, 0, param)
+    myplot.plot_voltage_LIONSIMBA(soln, mesh, 0, param)
+    myplot.plot_temperature_LIONSIMBA(soln, mesh, param)
+    # myplot.plot_OCP(np.linspace(0, 1, 100), 0, param)
+    # myplot.plot_surface_concentration(soln, mesh, param)
+    # myplot.plot_temperature(soln, mesh, param)
+    # myplot.plot_heat_generation(soln, mesh, 0, 0, param)
     plt.show()
     # Plot as function of time
     myplot.plot_electrolyte_concentration(soln, mesh, param)
