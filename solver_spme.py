@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from make_parameters import Parameters
 from make_mesh import FiniteVolumeMesh
 from make_rhs import rhs_spme
-import make_plots as myplot
+import make_plots_LIONSIMBA as myplot
 import utilities as ut
 
 # Load parameters -------------------------------------------------------------
@@ -14,7 +14,7 @@ C_rate = 1
 param = Parameters(C_rate, 'mypouch')
 
 # Make grids ------------------------------------------------------------------
-mesh = FiniteVolumeMesh(param, 101, 51, 240, 3600)
+mesh = FiniteVolumeMesh(param, 101, 51, 241, 3600)
 
 # Initial conditions ----------------------------------------------------------
 c_n_0 = param.c_n_0*np.ones(mesh.Nr - 1)
@@ -64,12 +64,9 @@ makeplots = 'True'
 
 if makeplots == 'True':
     # Static plots
-    myplot.plot_voltage_LIONSIMBA(soln, mesh, 0, param)
-    myplot.plot_temperature_LIONSIMBA(soln, mesh, param)
-    # myplot.plot_OCP(np.linspace(0, 1, 100), 0, param)
-    # myplot.plot_surface_concentration(soln, mesh, param)
-    # myplot.plot_temperature(soln, mesh, param)
-    # myplot.plot_heat_generation(soln, mesh, 0, 0, param)
+    myplot.plot_voltage(soln, mesh, 0, param)
+    myplot.plot_temperature(soln, mesh, param)
+    myplot.plot_surface_concentration(soln, mesh, param)
+    myplot.plot_electrolyte_concentration(soln, mesh, param, 1800)
+    myplot. plot_heat_generation(soln, mesh, param)
     plt.show()
-    # Plot as function of time
-    myplot.plot_electrolyte_concentration(soln, mesh, param)
