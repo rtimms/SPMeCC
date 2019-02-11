@@ -67,6 +67,6 @@ if makeplots == 'True':
     myplot.plot_voltage(soln, mesh, 0, param)
     myplot.plot_temperature(soln, mesh, param)
     myplot.plot_surface_concentration(soln, mesh, param)
-    myplot.plot_electrolyte_concentration(soln, mesh, param, 1800)
+    #  myplot.plot_electrolyte_concentration(soln, mesh, param, 1800)
     myplot. plot_heat_generation(soln, mesh, param)
     plt.show()

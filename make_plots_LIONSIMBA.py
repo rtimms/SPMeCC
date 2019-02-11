@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from dolfin import plot
 
 import heat_generation as heat
 from current_profile import current
@@ -17,18 +16,10 @@ def plot_voltage(soln, mesh, R_cc, param):
     t = soln.t * param.tau_d_star
 
     # LIONSIMBA results
-    if param.h_star > 0.5:
-        t_LION = np.linspace(0, 2700, 10)
-        V_LION = np.array([4.0030, 3.9396, 3.8904, 3.8474, 3.8100,
-                           3.7770, 3.7460, 3.7125, 3.6605, 3.5408])
-    elif param.h_star > 0.5*1E-2:
-        t_LION = np.linspace(0, 2400, 9)
-        V_LION = np.array([4.0030, 3.9398, 3.8908, 3.8478, 3.8105,
-                           3.7773, 3.7460, 3.7114, 3.6559])
-    else:
-        t_LION = np.linspace(0, 2400, 9)
-        V_LION = np.array([4.0030, 3.9398, 3.8908, 3.8479, 3.8105,
-                           3.7773, 3.7459, 3.7113, 3.6555])
+    # t column 0, V column 1
+    t_LION, V_LION = np.loadtxt('LIONSIMBA001_t.txt',
+                                usecols=(0, 1),
+                                unpack=True)
 
     # Font stuff
     plt.rc('text', usetex=True)
@@ -52,18 +43,11 @@ def plot_temperature(soln, mesh, param):
     c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1 = get_vars_time(soln.y, mesh)
 
     # LIONSIMBA results
-    if param.h_star > 0.5:
-        t_LION = np.linspace(0, 2700, 10)
-        T_LION = np.array([298.1500, 299.1755, 299.7207, 300.0215, 300.1525,
-                           300.2436, 300.4308, 300.7147, 301.1607, 301.7106])
-    elif param.h_star > 0.5*1E-2:
-        t_LION = np.linspace(0, 2400, 9)
-        T_LION = np.array([298.1500, 300.0446, 302.6419, 305.5707, 308.5822,
-                           311.6190, 314.8875, 318.5352, 322.8777])
-    else:
-        t_LION = np.linspace(0, 2400, 9)
-        T_LION = np.array([298.1500, 300.0582, 302.7058, 305.7287, 308.8814,
-                           312.1069, 315.6139, 319.5548, 324.2574])
+    # t columun 0, V column 2
+    t_LION, T_LION = np.loadtxt('LIONSIMBA001_t.txt',
+                                usecols=(0, 2),
+                                unpack=True)
+
     # Font stuff
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
@@ -89,16 +73,10 @@ def plot_surface_concentration(soln, mesh, param):
     c_p_surf = c_p[-1, :] + (c_p[-1, :] - c_p[-2, :]) / 2
 
     # LIONSIMBA results
-    if param.h_star > 0.5:
-        t_LION = np.linspace(0, 2700, 10)
-        c_n_LION = [0.7333, 0.6597, 0.5878, 0.5159, 0.4440,
-                    0.3721, 0.3002, 0.2283, 0.1564, 0.0845]
-        c_p_LION = [0.5674, 0.6091, 0.6474, 0.6858, 0.7241,
-                    0.7624, 0.8008, 0.8391, 0.8774, 0.9157]
-    else:
-        t_LION = [0]
-        c_n_LION = [0]
-        c_p_LION = [0]
+    # t column 0, c_n column 3, c_p column 4
+    t_LION, c_n_LION, c_p_LION = np.loadtxt('LIONSIMBA001_t.txt',
+                                            usecols=(0, 3, 4),
+                                            unpack=True)
 
     # Font stuff
     plt.rc('text', usetex=True)
@@ -107,13 +85,15 @@ def plot_surface_concentration(soln, mesh, param):
     # Plot surface concentrations
     fig = plt.figure()
     plt.subplot(1, 2, 1)
-    plt.plot(soln.t * param.tau_d_star, c_n_surf, label='SPMe')
+    plt.plot(soln.t * param.tau_d_star, c_n_surf * param.c_n_max_star,
+             label='SPMe')
     plt.plot(t_LION, c_n_LION, 'o', label='LIONSIMBA')
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.ylabel('Surface 'r'$c_{{\mathrm{{n}}}}$', fontsize=11)
     plt.legend()
     plt.subplot(1, 2, 2)
-    plt.plot(soln.t * param.tau_d_star, c_p_surf, label='SPMe')
+    plt.plot(soln.t * param.tau_d_star, c_p_surf * param.c_p_max_star,
+             label='SPMe')
     plt.plot(t_LION, c_p_LION, 'o', label='LIONSIMBA')
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.ylabel('Surface 'r'$c_{{\mathrm{{p}}}}$', fontsize=11)
@@ -191,22 +171,21 @@ def plot_heat_generation(soln, mesh, param):
     I_app = current(t, param)
 
     # LIONSIMBA results
-    t_LION = np.linspace(0, 2700, 10)
-    Ohm_n = [1289.0, 6493.3, 6871.1, 6837.5, 6770.9,
-             7044.4, 8172.6, 9348.8, 8133.8, 7253.3]
-    Ohm_s = [2650, 12063, 11911, 11821, 11777,
-             11742, 11685, 11634, 11526, 11345]
-    Ohm_p = [1253.5, 6694.7, 6643.9, 6582.1, 6543.4,
-             6517.6, 6500.1, 6526.3, 6607.7, 6711.6]
-    Rxn_n = [2125.8, 1802.5, 1705.8, 1681.6, 1698.2,
-             1736.5, 1828.5, 2067.9, 2293.2, 2963.6]
-    Rxn_p = [2295.5, 2397.2, 2443.5, 2510.7, 2605.1,
-             2734.9, 2914.7, 3167.5, 3536.7, 4163.5]
-    Rev_n = [-10164, -10199, -10217, -11333, -15162,
-             -17341, -17295, -15992, -7123, 5294]
-    Rev_p = [12511, 26476, 34395, 40373, 45665,
-             50759, 55845, 60893, 65673, 69641]
+    # t column 0, heat generation columns 5-13
+    t_LION, Q_n, Q_p = np.loadtxt('LIONSIMBA001_t.txt',
+                                  usecols=(0, 12, 13),
+                                  unpack=True)
+    Ohm_n, Rxn_n, Rev_n = np.loadtxt('LIONSIMBA001_t.txt',
+                                     usecols=(5, 8, 10),
+                                     unpack=True)
+    Ohm_s = np.loadtxt('LIONSIMBA001_t.txt',
+                       usecols=(6),
+                       unpack=True)
+    Ohm_p, Rxn_p, Rev_p = np.loadtxt('LIONSIMBA001_t.txt',
+                                     usecols=(7, 9, 11),
+                                     unpack=True)
 
+    # Scale for heat generation in SPMe
     scale = param.I_star * param.Phi_star / param.Lx_star
 
     # Font stuff
@@ -218,82 +197,98 @@ def plot_heat_generation(soln, mesh, param):
 
     plt.subplot(1, 3, 1)
     plt.plot(t * param.tau_d_star,
-             param.delta
+             param.delta * scale
              * heat.ohmic_n_1(c_e_n_bar, c_e_neg_sep, param, I_app),
              label="Ohm")
     plt.plot(t * param.tau_d_star,
-             heat.rxn_n_0(T0, c_n_surf, param, I_app)
-             + param.delta
+             heat.rxn_n_0(T0, c_n_surf, param, I_app) * scale
+             + param.delta * scale
              * heat.rxn_n_1(T0, T1, c_n_surf, c_e_n_bar, param, I_app),
              label="rxn")
     plt.plot(t * param.tau_d_star,
-             heat.rev_n_0(T0, c_n_surf, param, I_app)
-             + param.delta
+             heat.rev_n_0(T0, c_n_surf, param, I_app) * scale
+             + param.delta * scale
              * heat.rev_n_1(T1, c_n_surf, param, I_app),
              label="rev")
     plt.plot(t * param.tau_d_star,
-             heat.rxn_n_0(T0, c_n_surf, param, I_app)
-             + heat.rev_n_0(T0, c_n_surf, param, I_app)
-             + param.delta
+             heat.rxn_n_0(T0, c_n_surf, param, I_app) * scale
+             + heat.rev_n_0(T0, c_n_surf, param, I_app) * scale
+             + param.delta * scale
              * heat.ohmic_n_1(c_e_n_bar, c_e_neg_sep, param, I_app)
-             + param.delta
+             + param.delta * scale
              * heat.rxn_n_1(T0, T1, c_n_surf, c_e_n_bar, param, I_app)
-             + param.delta
+             + param.delta * scale
              * heat.rev_n_1(T1, c_n_surf, param, I_app),
              label="Total")
-    plt.plot(t_LION, np.array(Ohm_n) / scale, 'o')
-    plt.plot(t_LION, np.array(Rxn_n) / scale, 'x')
-    plt.plot(t_LION, np.array(Rev_n) / scale, '^')
-    plt.plot(t_LION, np.array(Ohm_n) / scale
-             + np.array(Rxn_n) / scale
-             + np.array(Rev_n) / scale, 's')
+    plt.plot(t_LION, Ohm_n, 'o')
+    plt.plot(t_LION, Rxn_n, 'x')
+    plt.plot(t_LION, Rev_n, '^')
+    plt.plot(t_LION, Q_n, 's')
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.title('Negative electrode', fontsize=11)
     plt.legend()
 
     plt.subplot(1, 3, 3)
     plt.plot(t * param.tau_d_star,
-             param.delta
-             * heat.ohmic_p_1(c_e_neg_sep, c_e_pos_sep, param, I_app),
-             label="Ohm")
+             param.delta * scale
+             * heat.ohmic_p_1(c_e_neg_sep, c_e_pos_sep, param, I_app))
     plt.plot(t * param.tau_d_star,
-             heat.rxn_p_0(T0, c_p_surf, param, I_app)
-             + param.delta
-             * heat.rxn_p_1(T0, T1, c_p_surf, c_e_p_bar, param, I_app),
-             label="rxn")
+             heat.rxn_p_0(T0, c_p_surf, param, I_app) * scale
+             + param.delta * scale
+             * heat.rxn_p_1(T0, T1, c_p_surf, c_e_p_bar, param, I_app))
     plt.plot(t * param.tau_d_star,
-             heat.rev_p_0(T0, c_p_surf, param, I_app)
-             + param.delta
-             * heat.rev_p_1(T1, c_p_surf, param, I_app),
-             label="rev")
+             heat.rev_p_0(T0, c_p_surf, param, I_app) * scale
+             + param.delta * scale
+             * heat.rev_p_1(T1, c_p_surf, param, I_app))
     plt.plot(t * param.tau_d_star,
-             heat.rxn_p_0(T0, c_p_surf, param, I_app)
-             + heat.rev_p_0(T0, c_p_surf, param, I_app)
-             + param.delta
+             heat.rxn_p_0(T0, c_p_surf, param, I_app) * scale
+             + heat.rev_p_0(T0, c_p_surf, param, I_app) * scale
+             + param.delta * scale
              * heat.ohmic_s_1(c_e_neg_sep, c_e_pos_sep, param, I_app)
-             + param.delta
+             + param.delta * scale
              * heat.rxn_p_1(T0, T1, c_p_surf, c_e_p_bar, param, I_app)
-             + param.delta
-             * heat.rev_p_1(T1, c_p_surf, param, I_app),
-             label="Total")
-    plt.plot(t_LION, np.array(Ohm_p) / scale, 'o')
-    plt.plot(t_LION, np.array(Rxn_p) / scale, 'x')
-    plt.plot(t_LION, np.array(Rev_p) / scale, '^')
-    plt.plot(t_LION, np.array(Ohm_p) / scale
-             + np.array(Rxn_n) / scale
-             + np.array(Rev_n) / scale, 's')
+             + param.delta * scale
+             * heat.rev_p_1(T1, c_p_surf, param, I_app))
+    plt.plot(t_LION, Ohm_p, 'o', label="Ohm")
+    plt.plot(t_LION, Rxn_p, 'x', label="rxn")
+    plt.plot(t_LION, Rev_p, '^', label="rev")
+    plt.plot(t_LION, Q_p, 's', label="Total")
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.title('Positive electrode', fontsize=11)
     plt.legend()
 
     plt.subplot(1, 3, 2)
     plt.plot(t * param.tau_d_star,
-             param.delta
-             * heat.ohmic_s_1(c_e_neg_sep, c_e_pos_sep, param, I_app),
-             label="Ohm")
-    plt.plot(t_LION, np.array(Ohm_s) / scale, 'o')
+             param.delta * scale
+             * heat.ohmic_s_1(c_e_neg_sep, c_e_pos_sep, param, I_app))
+    plt.plot(t_LION, Ohm_s, 'o')
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.title('Separator', fontsize=11)
-    plt.legend()
 
+    fig.tight_layout()
+
+
+def plot_OCP(c, T, param):
+    # Font stuff
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    # Plot OCP and entropic coefficient at a fixed T
+    fig = plt.figure()
+    plt.subplot(2, 2, 1)
+    plt.plot(c, ocp.U_n(c, T, param) * param.Phi_star)
+    plt.xlabel(r'$c_{{\mathrm{{n}}}}$')
+    plt.ylabel(r'$U_{{\mathrm{{n}}}}$')
+    plt.subplot(2, 2, 3)
+    plt.plot(c, ocp.dUdT_n(c, param) * param.Phi_star / param.Delta_T_star)
+    plt.xlabel(r'$c_{{\mathrm{{n}}}}$')
+    plt.ylabel(r'$\frac{{\mathrm{{d}} U_{{\mathrm{{n}}}}}}{{\mathrm{{d}}T}}$')
+    plt.subplot(2, 2, 2)
+    plt.plot(c, ocp.U_p(c, T, param) * param.Phi_star)
+    plt.xlabel(r'$c_{{\mathrm{{p}}}}$')
+    plt.ylabel(r'$U_{{\mathrm{{p}}}}$')
+    plt.subplot(2, 2, 4)
+    plt.plot(c, ocp.dUdT_p(c, param) * param.Phi_star / param.Delta_T_star)
+    plt.xlabel(r'$c_{{\mathrm{{p}}}}$')
+    plt.ylabel(r'$\frac{{\mathrm{{d}} U_{{\mathrm{{p}}}}}}{{\mathrm{{d}}T}}$')
     fig.tight_layout()

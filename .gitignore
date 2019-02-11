@@ -6,6 +6,7 @@
 # don't ignore important .txt files
 !requirements*
 !LICENSE.txt
+!LIONSIMBA001_t.txt
 
 # running files
 *.pyc
