@@ -71,7 +71,7 @@ class Parameters(object):
             #                / (self.Ly_star * self.Lz_star))
             # Fudge to make leading-order SPMeCC current density equivalent
             # to that applied in LIONSIMBA
-            self.I_star = 30 * (self.Ly_star / self.Lz_star)
+            self.I_star = 29.23 * (self.Ly_star / self.Lz_star)
 
             # Electrical conductivity
             self.sigma_cn_star = 5.96*1E7
@@ -80,10 +80,10 @@ class Parameters(object):
             self.sigma_cp_star = 3.55*1E7
 
             # Rescale conductivity as in LIONSIMBA
-            self.sigma_n_star = (self.sigma_n_star
-                                 * (1 - self.epsilon_n - self.epsilon_f_n))
-            self.sigma_p_star = (self.sigma_p_star
-                                 * (1 - self.epsilon_p - self.epsilon_f_p))
+            self.sigma_n_eff_star = (self.sigma_n_star
+                                     * (1 - self.epsilon_n - self.epsilon_f_n))
+            self.sigma_p_eff_star = (self.sigma_p_star
+                                     * (1 - self.epsilon_p - self.epsilon_f_p))
 
             # Diffusivity
             self.D_n_tilde_star = 3.9*1E-14
@@ -202,9 +202,9 @@ class Parameters(object):
 
         self.sigma_cn = (self.sigma_cn_star * self.Phi_star
                          / self.I_star / self.Lx_star)
-        self.sigma_n = (self.sigma_n_star * self.Phi_star
+        self.sigma_n = (self.sigma_n_eff_star * self.Phi_star
                         / self.I_star / self.Lx_star)
-        self.sigma_p = (self.sigma_p_star * self.Phi_star
+        self.sigma_p = (self.sigma_p_eff_star * self.Phi_star
                         / self.I_star / self.Lx_star)
         self.sigma_cp = (self.sigma_cp_star * self.Phi_star
                          / self.I_star / self.Lx_star)

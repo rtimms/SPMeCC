@@ -55,7 +55,7 @@ def plot_temperature(soln, mesh, param):
     # Plot temperature
     fig = plt.figure()
     plt.plot(soln.t * param.tau_d_star,
-             T0 * param.Delta_T_star + param.T_inf_star,
+             (T0 + param.delta * T1) * param.Delta_T_star + param.T_inf_star,
              label='SPMe')
     plt.plot(t_LION, T_LION, 'o', label='LIONSIMBA')
     plt.xlabel(r'$t$ [s]', fontsize=11)
@@ -220,10 +220,10 @@ def plot_heat_generation(soln, mesh, param):
              + param.delta * scale
              * heat.rev_n_1(T1, c_n_surf, param, I_app),
              label="Total")
-    plt.plot(t_LION, Ohm_n, 'o')
-    plt.plot(t_LION, Rxn_n, 'x')
-    plt.plot(t_LION, Rev_n, '^')
-    plt.plot(t_LION, Q_n, 's')
+    plt.plot(t_LION, Ohm_n, 'o', c='#1f77b4')
+    plt.plot(t_LION, Rxn_n, 'x', c='#ff7f0e')
+    plt.plot(t_LION, Rev_n, '^', c='#2ca02c')
+    plt.plot(t_LION, Q_n, 's', c='#d62728')
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.title('Negative electrode', fontsize=11)
     plt.legend()
@@ -249,10 +249,10 @@ def plot_heat_generation(soln, mesh, param):
              * heat.rxn_p_1(T0, T1, c_p_surf, c_e_p_bar, param, I_app)
              + param.delta * scale
              * heat.rev_p_1(T1, c_p_surf, param, I_app))
-    plt.plot(t_LION, Ohm_p, 'o', label="Ohm")
-    plt.plot(t_LION, Rxn_p, 'x', label="rxn")
-    plt.plot(t_LION, Rev_p, '^', label="rev")
-    plt.plot(t_LION, Q_p, 's', label="Total")
+    plt.plot(t_LION, Ohm_p, 'o', c='#1f77b4', label="Ohm")
+    plt.plot(t_LION, Rxn_p, 'x', c='#ff7f0e', label="rxn")
+    plt.plot(t_LION, Rev_p, '^', c='#2ca02c', label="rev")
+    plt.plot(t_LION, Q_p, 's', c='#d62728', label="Total")
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.title('Positive electrode', fontsize=11)
     plt.legend()
@@ -261,14 +261,27 @@ def plot_heat_generation(soln, mesh, param):
     plt.plot(t * param.tau_d_star,
              param.delta * scale
              * heat.ohmic_s_1(c_e_neg_sep, c_e_pos_sep, param, I_app))
-    plt.plot(t_LION, Ohm_s, 'o')
+    plt.plot(t_LION, Ohm_s, 'o', c='#1f77b4')
     plt.xlabel(r'$t$ [s]', fontsize=11)
     plt.title('Separator', fontsize=11)
 
     fig.tight_layout()
 
 
-def plot_OCP(c, T, param):
+def plot_OCP(soln, mesh, param):
+    # Get variables
+    c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1 = get_vars_time(soln.y, mesh)
+    t = soln.t
+
+    # Surface concentration for BV
+    c_n_surf = c_n[-1, :] + (c_n[-1, :] - c_n[-2, :]) / 2
+    c_p_surf = c_p[-1, :] + (c_p[-1, :] - c_p[-2, :]) / 2
+
+    # LIONSIMBA results
+    # t column 0, OCP 14 - 17
+    t_LION, U_n, U_p, dUdT_n, dUdT_p = np.loadtxt('LIONSIMBA001_t.txt',
+                                                  usecols=(0, 14, 15, 16, 17),
+                                                  unpack=True)
     # Font stuff
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
@@ -276,19 +289,29 @@ def plot_OCP(c, T, param):
     # Plot OCP and entropic coefficient at a fixed T
     fig = plt.figure()
     plt.subplot(2, 2, 1)
-    plt.plot(c, ocp.U_n(c, T, param) * param.Phi_star)
-    plt.xlabel(r'$c_{{\mathrm{{n}}}}$')
-    plt.ylabel(r'$U_{{\mathrm{{n}}}}$')
+    plt.plot(t * param.tau_d_star,
+             ocp.U_n(c_n_surf, T0, param) * param.Phi_star)
+    plt.plot(t_LION, U_n, 'o')
+    plt.xlabel(r'$t$ [s]', fontsize=11)
+    plt.ylabel(r'$U_{{\mathrm{{n}}}}$', fontsize=11)
     plt.subplot(2, 2, 3)
-    plt.plot(c, ocp.dUdT_n(c, param) * param.Phi_star / param.Delta_T_star)
-    plt.xlabel(r'$c_{{\mathrm{{n}}}}$')
-    plt.ylabel(r'$\frac{{\mathrm{{d}} U_{{\mathrm{{n}}}}}}{{\mathrm{{d}}T}}$')
+    plt.plot(t * param.tau_d_star,
+             ocp.dUdT_n(c_n_surf, param) * param.Phi_star / param.Delta_T_star)
+    plt.plot(t_LION, dUdT_n, 'o')
+    plt.xlabel(r'$t$ [s]', fontsize=11)
+    plt.ylabel(r'$\mathrm{{d}}U_{{\mathrm{{n}}}}$'
+               r'$ / \mathrm{{d}}T$', fontsize=11)
     plt.subplot(2, 2, 2)
-    plt.plot(c, ocp.U_p(c, T, param) * param.Phi_star)
-    plt.xlabel(r'$c_{{\mathrm{{p}}}}$')
-    plt.ylabel(r'$U_{{\mathrm{{p}}}}$')
+    plt.plot(t * param.tau_d_star,
+             ocp.U_p(c_p_surf, T0, param) * param.Phi_star)
+    plt.plot(t_LION, U_p, 'o')
+    plt.xlabel(r'$t$ [s]', fontsize=11)
+    plt.ylabel(r'$U_{{\mathrm{{p}}}}$', fontsize=11)
     plt.subplot(2, 2, 4)
-    plt.plot(c, ocp.dUdT_p(c, param) * param.Phi_star / param.Delta_T_star)
-    plt.xlabel(r'$c_{{\mathrm{{p}}}}$')
-    plt.ylabel(r'$\frac{{\mathrm{{d}} U_{{\mathrm{{p}}}}}}{{\mathrm{{d}}T}}$')
+    plt.plot(t * param.tau_d_star,
+             ocp.dUdT_p(c_p_surf, param) * param.Phi_star / param.Delta_T_star)
+    plt.plot(t_LION, dUdT_p, 'o')
+    plt.xlabel(r'$t$ [s]', fontsize=11)
+    plt.ylabel(r'$\mathrm{{d}}U_{{\mathrm{{p}}}}$'
+               r'$ / \mathrm{{d}}T$', fontsize=11)
     fig.tight_layout()

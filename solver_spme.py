@@ -14,7 +14,7 @@ C_rate = 1
 param = Parameters(C_rate, 'mypouch')
 
 # Make grids ------------------------------------------------------------------
-mesh = FiniteVolumeMesh(param, 101, 51, 241, 3600)
+mesh = FiniteVolumeMesh(param, 101, 49, 241, 3600)
 
 # Initial conditions ----------------------------------------------------------
 c_n_0 = param.c_n_0*np.ones(mesh.Nr - 1)
@@ -69,4 +69,5 @@ if makeplots == 'True':
     myplot.plot_surface_concentration(soln, mesh, param)
     #  myplot.plot_electrolyte_concentration(soln, mesh, param, 1800)
     myplot. plot_heat_generation(soln, mesh, param)
+    myplot.plot_OCP(soln, mesh, param)
     plt.show()

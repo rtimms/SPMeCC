@@ -376,7 +376,7 @@ def rhs_temperature_spme(t, T0, T1, c_n_surf, c_p_surf,
               * (param.B * Q_bar_0 + Q_loss_0)*np.ones(1))
 
     dT1_dt = ((param.gamma_th / param.rho)
-              * (param.B * Q_bar_1 + 0*Q_loss_1)*np.ones(1))
+              * (param.B * Q_bar_1 + Q_loss_1)*np.ones(1))
 
     dT_dt = np.concatenate((dT0_dt, dT1_dt))
 
