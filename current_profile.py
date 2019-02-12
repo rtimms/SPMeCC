@@ -21,7 +21,7 @@ def current(t, param, current_type='constant'):
             The applied current.
         """
         if current_type == 'constant':
-            current = param.C_rate * np.ones(np.size(t))
+            current = np.ones(np.size(t))
         else:
             raise ValueError('Given current profile not recognised!')
         return current

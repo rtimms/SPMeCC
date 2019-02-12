@@ -11,7 +11,7 @@ class Parameters(object):
                 The name of the dimensional paramters to load.
         """
         # Put C-rate in Parameters object
-        self.C_rate = 1
+        self.C_rate = C_rate
 
         # Put name in parameters object
         self.name = name
@@ -71,7 +71,7 @@ class Parameters(object):
             #                / (self.Ly_star * self.Lz_star))
             # Fudge to make leading-order SPMeCC current density equivalent
             # to that applied in LIONSIMBA
-            self.I_star = 29.23 * (self.Ly_star / self.Lz_star)
+            self.I_star = self.C_rate * 29.23 * (self.Ly_star / self.Lz_star)
 
             # Electrical conductivity
             self.sigma_cn_star = 5.96*1E7

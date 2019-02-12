@@ -9,12 +9,13 @@ import make_plots_LIONSIMBA as myplot
 import utilities as ut
 
 # Load parameters -------------------------------------------------------------
-C_rate = 1
+C_rate = 1.0
 # param = Parameters(C_rate)
 param = Parameters(C_rate, 'mypouch')
 
 # Make grids ------------------------------------------------------------------
-mesh = FiniteVolumeMesh(param, 101, 49, 241, 3600)
+mesh = FiniteVolumeMesh(param, 101, 49,
+                        (3600 / 15 / C_rate) + 1, 3600 / C_rate)
 
 # Initial conditions ----------------------------------------------------------
 c_n_0 = param.c_n_0*np.ones(mesh.Nr - 1)
