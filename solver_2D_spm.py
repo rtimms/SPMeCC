@@ -6,6 +6,7 @@ from make_parameters import Parameters
 from make_stiffness_matrix import fem_matrices
 from make_mesh import FiniteVolumeMesh
 import open_circuit_potentials as ocp
+from make_rhs import rhs_particle
 import make_plots as myplot
 import utilities as ut
 
@@ -56,17 +57,22 @@ A[0:Nyz_dofs, Nyz_dofs:2*Nyz_dofs] = param.alpha*np.eye(Nyz_dofs)
 A[Nyz_dofs:2*Nyz_dofs, 0:Nyz_dofs] = np.eye(Nyz_dofs)
 
 # Load vector (RHS)
-b = np.zeros(N_dofs)
+b = np.zeros(param.N_dofs)
 b[0:Nyz_dofs] = -(load_tab_n + load_tab_p)
 # Remining entries depend on time and are computed during solve
 
 
-def update_load(t, y, b, mesh, param):
+def update_load(t, y, load, mesh, param):
+
+    # Start indices for variables
+    I_idx = param.Nyz_dofs
+    c_n_idx = 2*param.Nyz_dofs
+    c_p_idx = 2*param.Nyz_dofs + param.Nyz_dofs * (mesh.Nr - 1)
 
     # Get variables
-    I_current = y[param.Nyz_dofs:2*param.Nyz_dofs]
-    c_n = y[2*param.Nyz_dofs:2*param.Nyz_dofs + param.Nyz_dofs * (mesh.Nr - 1)]
-    c_p = y[2*param.Nyz_dofs + param.Nyz_dofs * (mesh.Nr - 1):]
+    I_current = y[I_idx:c_n_idx]
+    c_n = y[c_n_idx:c_p_idx]
+    c_p = y[c_p_idx:]
 
     # Surface concentration for BV
     ind = np.arange(mesh.Nr - 2, np.size(c_n), mesh.Nr - 1)
@@ -74,24 +80,42 @@ def update_load(t, y, b, mesh, param):
     c_p_surf = c_p[ind] + (c_p[ind] - c_p[ind-1]) / 2
 
     # SPM relation
-    b[param.Nyz_dofs:2*param.Nyz_dofs] = SPM_fun(I_current, c_n_surf, c_p_surf, param)
+    load[I_idx:c_n_idx] = SPM_fun(I_current, c_n_surf, c_p_surf, param)
 
     # FVM for concentration
-    b[2*param.Nyz_dofs:] = rhs_particle(t, c_n, c_p, mesh, param, I_current)
+    # NOTE: slow loop for now but eventually will be implemented using PyBaMM
+    for i in range(param.Nyz_dofs):
+        idx = (mesh.Nr - 1)*i
+        c_n_slice = c_n[idx:idx+mesh.Nr-1]
+        c_p_slice = c_p[idx:idx+mesh.Nr-1]
+        dc_dt = rhs_particle(t, c_n_slice, c_p_slice, mesh, param, I_current[idx])
 
-    return b
+        load[c_n_idx + idx:c_n_idx + idx + mesh.Nr-1] = dc_dt[0:mesh.Nr-1]
+        load[c_p_idx + idx:c_p_idx + idx + mesh.Nr-1] = dc_dt[mesh.Nr-1:]
+    return load
 
 
 def SPM_fun(I, c_n, c_p, param):
     g_n = param.m_n*param.C_hat_n*np.sqrt(c_n)*np.sqrt(1 - c_n)
-    g_n = param.m_p*param.C_hat_p*np.sqrt(c_p)*np.sqrt(1 - c_p)
+    g_p = param.m_p*param.C_hat_p*np.sqrt(c_p)*np.sqrt(1 - c_p)
     result = (
         ocp.U_p(c_p, param.T_0, param) - ocp.U_n(param.c_n, param.T_0, param)
         - (2/param.Lambda)*np.arcsinh(I / (g_p * param.L_p))
         - (2/param.Lambda)*np.arcsinh(I / (g_n * param.L_n))
     )
     return result
+
+
 # Define residual and Jacobian for DAE system ---------------------------------
 def my_rhs(t, y, ydot, result):
     # Load vector
-    return 0
+    b = update_load(t, y, b, mesh, param)
+    # Residual
+    result[:] = (
+        np.dot(M, ydot) - np.dot(A, y) - b
+    )
+
+
+def my_jac(self, t, y, ydot, cj, jac):
+    # Need to write function to approximate jacobian of nonlinear part
+    jac[:][:] = - A + cj*M - J_approx
