@@ -82,6 +82,48 @@ def plot_terminal_voltage(soln, mesh, R_cc, param):
     fig2.tight_layout()
 
 
+def plot_voltage_breakdown(soln, mesh, R_cc, param):
+    # Create voltage object
+    voltage = Voltage(soln, mesh, R_cc, param)
+
+    # Convert to dimensional time
+    t = soln.t * param.tau_d_star
+
+    # Font stuff
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+    plt.rc('xtick',labelsize=12)
+    plt.rc('ytick',labelsize=12)
+
+    # Make plots
+    fig, ax1 = plt.subplots(figsize=(22/2.54, 12/2.54))
+    left, bottom, width, height = [0.23, 0.23, 0.29, 0.22]
+    ax2 = fig.add_axes([left, bottom, width, height])
+    ax1.stackplot(t,
+                  voltage.U_eq - voltage.U_eq_init,
+                  voltage.eta_r,
+                  voltage.eta_c,
+                  voltage.Delta_Phi_elec,
+                  voltage.Delta_Phi_solid,
+                  voltage.Delta_Phi_cc,
+                  labels=['OCV',
+                          'Reaction overpotential',
+                          'Concetration overpotential',
+                          'Electrolyte Ohmic',
+                          'Solid Ohmic',
+                          'Current Collector Ohmic'])
+    ax1.set_xlim([t[0], t[-1]])
+    ax1.set_xlabel(r'$t$ [s]', fontsize=18)
+    ax1.set_ylabel('Voltage loss [V]', fontsize=18)
+    ax1.legend()
+    ax2.plot(t, voltage.v_term, label="V")
+    plt.xlim([t[0], t[-1]])
+    plt.xlabel(r'$t$ [s]', fontsize=18)
+    plt.ylabel('Voltage [V]', fontsize=18)
+    plt.legend()
+    plt.savefig('V_SPMeCC.eps', format='eps', dpi=1000)
+
+
 def plot_heat_generation(soln, mesh, R_cn, R_cp, param):
     # Get variables
     c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1 = get_vars_time(soln.y, mesh)

@@ -10,7 +10,7 @@ import make_plots as myplot
 import utilities as ut
 
 # Load parameters -------------------------------------------------------------
-C_rate = 1
+C_rate = 2
 # param = Parameters(C_rate)
 param = Parameters(C_rate, 'mypouch')
 
@@ -66,9 +66,12 @@ soln = solve_ivp(
      )
 
 # Plot solution ---------------------------------------------------------------
-makeplots = 'True'
+makeplots = False
 
-if makeplots == 'True':
+myplot.plot_voltage_breakdown(soln, mesh, R_CC, param)
+plt.show()
+
+if makeplots is True:
     # Static plots
     myplot.plot_terminal_voltage(soln, mesh, R_CC, param)
     myplot.plot_OCP(np.linspace(0, 1, 100), 0, param)

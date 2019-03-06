@@ -129,8 +129,8 @@ class Parameters(object):
 
             # Thermal
             self.T_inf_star = 298.15
-            self.h_star = 1
-            self.h_tab_star = 1
+            self.h_star = 2
+            self.h_tab_star = 2
             self.Delta_T_star = self.I_star * self.Phi_star / self.h_star
 
             # Initial conditions

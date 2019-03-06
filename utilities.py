@@ -70,4 +70,4 @@ def full_particle(t, y, mesh):
     # Get variables
     c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1 = get_vars(y, mesh)
     TOL = 1E-3
-    return 0.9 - (np.max([np.max(c_n), np.max(c_p)]) + TOL)
+    return 0.99 - (np.max([np.max(c_n), np.max(c_p)]) + TOL)
