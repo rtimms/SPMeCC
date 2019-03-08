@@ -91,36 +91,42 @@ def plot_voltage_breakdown(soln, mesh, R_cc, param):
 
     # Font stuff
     plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-    plt.rc('xtick',labelsize=12)
-    plt.rc('ytick',labelsize=12)
+    plt.rc('font', family='sans-serif')
+    plt.rc('mathtext', fontset='stixsans')
+    plt.rc('text.latex', preamble=r'\usepackage{sfmath}')
+    plt.rc('xtick', labelsize=18)
+    plt.rc('ytick', labelsize=18)
+    plt.rc('axes', titlepad=10)
 
     # Make plots
-    fig, ax1 = plt.subplots(figsize=(22/2.54, 12/2.54))
-    left, bottom, width, height = [0.23, 0.23, 0.29, 0.22]
+    fig, ax1 = plt.subplots(figsize=(25/2.54, 12/2.54))
+    plt.title('SPMeCC', fontsize=24)
+    left, bottom, width, height = [0.19, 0.32, 0.29, 0.21]
     ax2 = fig.add_axes([left, bottom, width, height])
     ax1.stackplot(t,
                   voltage.U_eq - voltage.U_eq_init,
                   voltage.eta_r,
                   voltage.eta_c,
                   voltage.Delta_Phi_elec,
-                  voltage.Delta_Phi_solid,
                   voltage.Delta_Phi_cc,
                   labels=['OCV',
                           'Reaction overpotential',
                           'Concetration overpotential',
                           'Electrolyte Ohmic',
-                          'Solid Ohmic',
                           'Current Collector Ohmic'])
-    ax1.set_xlim([t[0], t[-1]])
-    ax1.set_xlabel(r'$t$ [s]', fontsize=18)
-    ax1.set_ylabel('Voltage loss [V]', fontsize=18)
     ax1.legend()
-    ax2.plot(t, voltage.v_term, label="V")
-    plt.xlim([t[0], t[-1]])
+    ax1.set_xlim([t[0], 1400])
+    ax1.set_ylim([-0.5, 0])
+    ax1.set_xlabel(r'$t$ [s]', fontsize=22)
+    ax1.set_ylabel('Voltage loss [V]', fontsize=22)
+    plt.plot(t, voltage.v_term, label="V")
+    ax2.set_xlim([0, 1800])
+    ax2.set_ylim([param.V_min, param.V_max])
     plt.xlabel(r'$t$ [s]', fontsize=18)
     plt.ylabel('Voltage [V]', fontsize=18)
-    plt.legend()
+    ax1.set_xticks([0, 450, 900, 1350])
+    ax2.set_xticks([0, 900, 1800])
+    plt.tight_layout()
     plt.savefig('V_SPMeCC.eps', format='eps', dpi=1000)
 
 

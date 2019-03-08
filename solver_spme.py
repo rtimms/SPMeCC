@@ -56,8 +56,10 @@ soln = solve_ivp(
      [mesh.t[0], mesh.t[-1]],
      y_0,
      t_eval=mesh.t,
+     rtol=1e-8,
+     atol=1e-8,
      method='BDF',
-     events=[empty_particle_wrapper, full_particle_wrapper]
+     events=[voltage_cutoff_wrapper, empty_particle_wrapper, full_particle_wrapper]
      )
 
 # Plot solution ---------------------------------------------------------------

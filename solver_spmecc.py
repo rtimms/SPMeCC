@@ -8,6 +8,8 @@ from make_mesh import FiniteVolumeMesh
 from make_rhs import rhs_spmecc
 import make_plots as myplot
 import utilities as ut
+from current_profile import current
+
 
 # Load parameters -------------------------------------------------------------
 C_rate = 2
@@ -20,7 +22,7 @@ degree = 2  # Degree of polynomial
 psi, W, R_CC, R_cn, R_cp = solve_psi_W(param, Ny, Nz, degree)
 
 # Make grids ------------------------------------------------------------------
-mesh = FiniteVolumeMesh(param, 11, 51, 240, 3600)
+mesh = FiniteVolumeMesh(param, 11, 51, 3600, 3600)
 
 # Initial conditions ----------------------------------------------------------
 c_n_0 = param.c_n_0*np.ones(mesh.Nr - 1)
@@ -49,7 +51,7 @@ full_particle_wrapper.terminal = True
 
 
 def voltage_cutoff_wrapper(t, y):
-    return ut.voltage_cutoff(t, y, mesh, param)
+    return ut.voltage_cutoff(t, y, mesh, param, current(t, param))
 
 
 voltage_cutoff_wrapper.terminal = True
@@ -61,8 +63,10 @@ soln = solve_ivp(
      [mesh.t[0], mesh.t[-1]],
      y_0,
      t_eval=mesh.t,
+     rtol=1e-8,
+     atol=1e-8,
      method='BDF',
-     events=[empty_particle_wrapper, full_particle_wrapper]
+     events=[voltage_cutoff_wrapper, full_particle_wrapper, empty_particle_wrapper]
      )
 
 # Plot solution ---------------------------------------------------------------
