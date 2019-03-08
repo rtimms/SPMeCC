@@ -1,4 +1,5 @@
-import numpy as np
+import autograd.numpy as np
+from autograd import jacobian
 from scikits.odes import dae
 import matplotlib.pyplot as plt
 
@@ -37,6 +38,9 @@ I_0 = np.zeros(Nyz_dofs)
 c_n_0 = param.c_n_0*np.ones(Nyz_dofs * (mesh.Nr - 1))
 c_p_0 = param.c_p_0*np.ones(Nyz_dofs * (mesh.Nr - 1))
 
+# Concatenate variables
+y_0 = np.concatenate([V_0, I_0, c_n_0, c_p_0])
+
 
 # Make matrices for DAE system ------------------------------------------------
 # NOTE: variables arranged as V, I, c_n, c_p, with c_n order by radial
@@ -47,11 +51,11 @@ c_p_0 = param.c_p_0*np.ones(Nyz_dofs * (mesh.Nr - 1))
 param.N_dofs = 2 * Nyz_dofs + 2 * Nyz_dofs * (mesh.Nr - 1)   # Add to param
 
 # Mass matrix
-M = np.zeros([N_dofs, N_dofs])
+M = np.zeros([param.N_dofs, param.N_dofs])
 M[2*Nyz_dofs:, 2*Nyz_dofs:] = np.eye(2 * Nyz_dofs * (mesh.Nr - 1))
 
 # Linear part
-A = np.zeros([N_dofs, N_dofs])
+A = np.zeros([param.N_dofs, param.N_dofs])
 A[0:Nyz_dofs, 0:Nyz_dofs] = K
 A[0:Nyz_dofs, Nyz_dofs:2*Nyz_dofs] = param.alpha*np.eye(Nyz_dofs)
 A[Nyz_dofs:2*Nyz_dofs, 0:Nyz_dofs] = np.eye(Nyz_dofs)
@@ -62,7 +66,10 @@ b[0:Nyz_dofs] = -(load_tab_n + load_tab_p)
 # Remining entries depend on time and are computed during solve
 
 
-def update_load(t, y, load, mesh, param):
+def update_load(t, y, mesh, param):
+
+    # Create load vector
+    load = np.zeros(param.N_dofs)
 
     # Start indices for variables
     I_idx = param.Nyz_dofs
@@ -107,15 +114,38 @@ def SPM_fun(I, c_n, c_p, param):
 
 
 # Define residual and Jacobian for DAE system ---------------------------------
-def my_rhs(t, y, ydot, result):
-    # Load vector
-    b = update_load(t, y, b, mesh, param)
-    # Residual
-    result[:] = (
-        np.dot(M, ydot) - np.dot(A, y) - b
-    )
+def my_rhs(t, y):
+        # Load vector
+        new_load = update_load(t, y, mesh, param)
+        b[param.Nyz_dofs:] = new_load[param.Nyz_dofs:]
+        # dy/dt = rhs
+        rhs = np.dot(A, y) + b
+        return rhs
+
+
+def my_residual(t, y, ydot, result):
+    # Residual F(t, y, y_dot) = 0
+    result[:] = (np.dot(M, ydot) - my_rhs(t, y))
+
+
+# Calculate Jacobian of RHS
+J = jacobian(my_rhs, 1)
 
 
 def my_jac(self, t, y, ydot, cj, jac):
     # Need to write function to approximate jacobian of nonlinear part
-    jac[:][:] = - A + cj*M - J_approx
+    jac[:][:] = -J(t, y) + cj*M
+
+
+# TO DO: Get consistant initial conditions ------------------------------------
+y_dot_0 = np.zeros(np.size(y_0))
+
+
+# Solve IVP -------------------------------------------------------------------
+print("Solving ODE.")
+ODE_start = mesh.t[0]
+solver = dae("ida", my_residual, jacfn=my_jac, atol=1e-4, rtol=1e-4, old_api=False)
+soln = solver.solve(mesh.t, y_0, y_dot_0)
+ODE_finish = mesh.t[-1]
+t_out = soln.values.t
+y_out = np.transpose(soln.values.y)

@@ -29,8 +29,8 @@ def fem_matrices(param, Ny, Nz, degree=1):
         the positive tab.
     """
     # Optimization options for the form compiler
-    parameters["form_compiler"]["cpp_optimize"] = True
-    ffc_options = {
+    df.parameters["form_compiler"]["cpp_optimize"] = True
+    df.ffc_options = {
         "optimize": True,
         "eliminate_zeros": True,
         "precompute_basis_const": True,
@@ -44,9 +44,6 @@ def fem_matrices(param, Ny, Nz, degree=1):
 
     V = df.TrialFunction(element)
     V_test = df.TestFunction(element)
-
-    # Number of degrees of freedom
-    N_dofs = np.size(V.vector()[:])
 
     # Create classes for defining tabs
     class NegativeTab(df.SubDomain):
@@ -120,11 +117,15 @@ def fem_matrices(param, Ny, Nz, degree=1):
     dVdn_positivetab = df.Constant(-param.C_rate/(param.sigma_cp_prime*param.A_tab_p))  # dV/dn at +ve tab
     neg_tab_form = dVdn_negativetab * V_test * ds(1)
     pos_tab_form = dVdn_positivetab * V_test * ds(2)
-    load_tab_n = df.assemble(neg_tab_form).array()
-    load_tab_p = df.assemble(pos_tab_form).array()
+    load_tab_n = df.assemble(neg_tab_form).get_local()[:]
+    load_tab_p = df.assemble(pos_tab_form).get_local()[:]
 
     # Create stifnness matrix
     K_form = df.inner(df.grad(V), df.grad(V_test)) * df.dx
     K = df.assemble(K_form).array()
+
+    # Number of degrees of freedom
+    V = df.Function(element)
+    N_dofs = np.size(V.vector()[:])
 
     return K, load_tab_n, load_tab_p, N_dofs
