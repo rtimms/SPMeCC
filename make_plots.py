@@ -106,7 +106,7 @@ def plot_voltage_breakdown(soln, mesh, R_cc, param):
     plt.rc("xtick", labelsize=18)
     plt.rc("ytick", labelsize=18)
     plt.rc("axes", titlepad=10)
-
+    plt.rc("legend", fontsize=14)
     # Make plots
     fig, ax1 = plt.subplots(figsize=(25 / 2.54, 12 / 2.54))
     plt.title(r"\textbf{SPMeCC}", fontsize=24)
@@ -131,7 +131,7 @@ def plot_voltage_breakdown(soln, mesh, R_cc, param):
     ax1.set_xlim([0, 1400 * param.I_star / (60 * 60) / param.C_rate])
     ax1.set_ylim([-0.5, 0])
     ax1.set_xlabel(r"Discharge Capacity (Ah/m$^2$)", fontsize=22)
-    ax1.set_ylabel("Voltage loss (V)", fontsize=22)
+    ax1.set_ylabel("Voltage Loss (V)", fontsize=22)
     plt.plot(dCap, voltage.v_term, label="V")
     ax2.set_xlim([0, 12])
     ax2.set_ylim([param.V_min, param.V_max])
