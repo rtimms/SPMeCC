@@ -16,7 +16,7 @@ ffc_options = {
 
 
 # Visualisation ---------------------------------------------------------------
-timeplots = False  # If true plots at each time are displayed
+timeplots = True  # If true plots at each time are displayed
 file_V = File("output/V.pvd", "compressed")  # File to save output to
 file_I = File("output/I.pvd", "compressed")  # File to save output to
 file_cn = File("output/cn.pvd", "compressed")  # File to save output to
@@ -185,9 +185,16 @@ def Q_bar(psi, V, I, c_n, c_p, T, param):
     return (Q_cn + Q_cp + Q_rxn + Q_rev) / param.L
 
 
+# Surafce concentration -------------------------------------------------------
+def c_n_surf(c_n_av, I):
+    return c_n_av - (I / param.L_n) / (param.beta_n * param.C_hat_n * param.gamma_n)
+
+def c_p_surf(c_p_av, I):
+    return c_p_av - (-I / param.L_p) / (param.beta_p * param.C_hat_p * param.gamma_p)
+
 # Meshing ---------------------------------------------------------------------
 # Create mesh
-mesh = RectangleMesh(Point(0, 0), Point(param.Ly, 1), 64, 64)
+mesh = RectangleMesh(Point(0, 0), Point(param.Ly, 1), 32, 32)
 
 
 # Create classes for defining tabs
@@ -359,8 +366,8 @@ while t < t_final:
     F2 = (
         (
             V
-            - (U_p(c_p, T, param) - U_n(c_n, T, param))
-            - (eta_p(I, c_p, T, param) - eta_n(I, c_n, T, param))
+            - (U_p(c_p_surf(c_p, I), T, param) - U_n(c_n_surf(c_n, I), T, param))
+            - (eta_p(I, c_p_surf(c_p, I), T, param) - eta_n(I, c_n_surf(c_n, I), T, param))
         )
         * I_test
         * dx
@@ -378,7 +385,7 @@ while t < t_final:
     F5 = (
         (param.rho / param.gamma_th) * (T - T_prev) * T_test * dx
         + dt * param.lambda_x * inner(grad(T), grad(T_test)) * dx
-        - dt * param.B * Q_bar(psi, V, I, c_n, c_p, T, param) * T_test * dx
+        - dt * param.B * Q_bar(psi, V, I, c_n_surf(c_n, I), c_p_surf(c_p, I), T, param) * T_test * dx
         + dt * (2 * param.h_prime / param.L) * T * T_test * dx
         + dt
         * (param.epsilon / param.L)
@@ -461,19 +468,19 @@ while t < t_final:
         plt.title("T /K")
         plt.colorbar(p3)
         plt.subplot(2, 3, 4)
-        p4 = plot(c_n_split)
+        p4 = plot(c_n_surf(c_n_split, I_split))
         plt.xlabel("y")
         plt.ylabel("z")
         plt.title("c_n")
         plt.colorbar(p4)
         plt.subplot(2, 3, 5)
-        p5 = plot(c_p_split)
+        p5 = plot(c_p_surf(c_p_split, I_split))
         plt.xlabel("y")
         plt.ylabel("z")
         plt.title("c_p")
         plt.colorbar(p5)
         plt.subplot(2, 3, 6)
-        p6 = plot(Q_bar(psi, V_split, I_split, c_n_split, c_p_split, T_split, param))
+        p6 = plot(Q_bar(psi, V_split, I_split, c_n_surf(c_n_split, I_split), c_p_surf(c_p_split, I_split), T_split, param))
         plt.xlabel("y")
         plt.ylabel("z")
         plt.title("Q")
@@ -512,13 +519,13 @@ while t < t_final:
 # plt.title("T /K")
 # plt.colorbar(p3)
 # plt.subplot(2, 3, 4)
-# p4 = plot(c_n_split)
+# p4 = plot(c_n_surf(c_n_split, I_split))
 # plt.xlabel('y')
 # plt.ylabel('z')
 # plt.title("c_n")
 # plt.colorbar(p4)
 # plt.subplot(2, 3, 5)
-# p5 = plot(c_p_split)
+# p5 = plot(c_p_surf(c_p_split, I_split))
 # plt.xlabel('y')
 # plt.ylabel('z')
 # plt.title("c_p")
