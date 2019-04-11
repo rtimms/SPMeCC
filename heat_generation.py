@@ -9,7 +9,7 @@ def rxn_n_0(T0, c_n_surf, param, I_app):
     negative electrode.
     Parameters
     ----------
-    T0: float
+    T0: float   
         The leading-order bulk temperature.
     c_n_surf: float
         The value of the concetration at the surface of the negative electrode

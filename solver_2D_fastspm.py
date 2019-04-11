@@ -16,7 +16,7 @@ ffc_options = {
 
 
 # Visualisation ---------------------------------------------------------------
-timeplots = False  # If true plots at each time are displayed
+timeplots = True  # If true plots at each time are displayed
 file_V = File("output/V.pvd", "compressed")  # File to save output to
 file_I = File("output/I.pvd", "compressed")  # File to save output to
 file_cn = File("output/cn.pvd", "compressed")  # File to save output to
@@ -381,14 +381,16 @@ while t < t_final:
         - dt * param.B * Q_bar(psi, V, I, c_n, c_p, T, param) * T_test * dx
         + dt * (2 * param.h_prime / param.L) * T * T_test * dx
         + dt
+        * param.epsilon * param.h_prime * T * T_test * ds(0)
+        + dt
         * (param.epsilon / param.L)
-        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime)
+        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime - param.h_prime * param.L)
         * T
         * T_test
         * ds(1)
         + dt
         * (param.epsilon / param.L)
-        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime)
+        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime - param.h_prime * param.L)
         * T
         * T_test
         * ds(2)

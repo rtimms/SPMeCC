@@ -16,7 +16,7 @@ ffc_options = {
 
 
 # Visualisation ---------------------------------------------------------------
-timeplots = True  # If true plots at each time are displayed
+timeplots = False  # If true plots at each time are displayed
 file_V = File("output/V.pvd", "compressed")  # File to save output to
 file_I = File("output/I.pvd", "compressed")  # File to save output to
 file_cn = File("output/cn.pvd", "compressed")  # File to save output to
@@ -25,7 +25,7 @@ file_T = File("output/T.pvd", "compressed")  # File to save output to
 
 
 # Load parameters -------------------------------------------------------------
-C_rate = 1.0
+C_rate = 2.0
 # param = Parameters(C_rate)
 param = myparams(C_rate, "mypouch")
 
@@ -49,7 +49,7 @@ dVdn_positivetab = Constant(
 
 # Timestepping ----------------------------------------------------------------
 t = 0.0  # initial time
-t_final = (60 * 60) / param.tau_d_star  # final time
+t_final = (10 * 60) / param.tau_d_star  # final time
 dt = 15 / param.tau_d_star  # step size
 
 
@@ -194,7 +194,7 @@ def c_p_surf(c_p_av, I):
 
 # Meshing ---------------------------------------------------------------------
 # Create mesh
-mesh = RectangleMesh(Point(0, 0), Point(param.Ly, 1), 32, 32)
+mesh = RectangleMesh(Point(0, 0), Point(param.Ly, 1), 64, 64)
 
 
 # Create classes for defining tabs
@@ -385,17 +385,19 @@ while t < t_final:
     F5 = (
         (param.rho / param.gamma_th) * (T - T_prev) * T_test * dx
         + dt * param.lambda_x * inner(grad(T), grad(T_test)) * dx
-        - dt * param.B * Q_bar(psi, V, I, c_n_surf(c_n, I), c_p_surf(c_p, I), T, param) * T_test * dx
+        - dt * param.B * Q_bar(psi, V, I, c_n, c_p, T, param) * T_test * dx
         + dt * (2 * param.h_prime / param.L) * T * T_test * dx
         + dt
+        * param.epsilon * param.h_prime * T * T_test * ds(0)
+        + dt
         * (param.epsilon / param.L)
-        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime)
+        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime - param.h_prime * param.L)
         * T
         * T_test
         * ds(1)
         + dt
         * (param.epsilon / param.L)
-        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime)
+        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime - param.h_prime * param.L)
         * T
         * T_test
         * ds(2)
@@ -545,18 +547,18 @@ plt.rc("ytick", labelsize=18)
 plt.rc("axes", titlepad=10)
 
 # Make plots
-fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
-ax = plt.gca()
-p1 = plot(V_split)
-p1.set_cmap("viridis")
-plt.xlabel(r"$y$", fontsize=22)
-plt.ylabel(r"$z$", fontsize=22)
-plt.title(r"\textbf{Potential (V)}", fontsize=24)
-divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p1, cax=cax)
-fig.tight_layout()
-plt.savefig("V_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
+#fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
+#ax = plt.gca()
+#p1 = plot(V_split)
+#p1.set_cmap("viridis")
+#plt.xlabel(r"$y$", fontsize=22)
+#plt.ylabel(r"$z$", fontsize=22)
+#plt.title(r"\textbf{Potential (V)}", fontsize=24)
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes("right", size="5%", pad=0.05)
+#plt.colorbar(p1, cax=cax)
+#fig.tight_layout()
+#plt.savefig("V_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
 
 fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
 ax = plt.gca()
