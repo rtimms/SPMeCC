@@ -31,7 +31,7 @@ param = myparams(C_rate, "mypouch")
 
 
 # Initial and boundary conditions ---------------------------------------------
-I_app = 1.0 * C_rate  # Applied current (TO DO: make function of time)
+I_app = 1.0  # Applied current (TO DO: make function of time)
 
 c_n0 = param.c_n_0  # Initial (uniform) negative electrode surface concentration
 c_p0 = param.c_p_0  # Initial (uniform) positive electrode surface concentration

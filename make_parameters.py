@@ -25,9 +25,9 @@ class Parameters(object):
             self.L_p_star = 80.0*1E-6
             self.L_cp_star = 10*1E-6
 
-            self.L_tab_n_star = 40*1E-3
-            self.L_tab_p_star = 40*1E-3
-            self.tab_offset_star = 30*1E-3
+            self.L_tab_n_star = 48*1E-3
+            self.L_tab_p_star = 48*1E-3
+            self.tab_offset_star = 10*1E-3
             self.tab_n_location = 't'  # Location of negative tab (t, b, l, r)
             self.tab_p_location = 't'  # Location of negative tab (t, b, l, r)
 
@@ -35,8 +35,8 @@ class Parameters(object):
             self.A_tab_p_star = self.L_cp_star * self.L_tab_n_star
 
             self.Lx_star = self.L_n_star + self.L_s_star + self.L_p_star
-            self.Ly_star = 180*1E-3
-            self.Lz_star = 220*1E-3
+            self.Ly_star = 150*1E-3
+            self.Lz_star = 200*1E-3
 
             self.L_star = self.L_cn_star + self.Lx_star + self.L_cp_star
 
@@ -130,7 +130,7 @@ class Parameters(object):
             # Thermal
             self.T_inf_star = 298.15
             self.h_star = 12.5
-            self.h_tab_star = 5000
+            self.h_tab_star = self.h_star * 1000
             self.Delta_T_star = self.I_star * self.Phi_star / self.h_star
 
             # Initial conditions

@@ -16,12 +16,12 @@ ffc_options = {
 
 
 # Visualisation ---------------------------------------------------------------
-timeplots = True  # If true plots at each time are displayed
-file_V = File("output/V.pvd", "compressed")  # File to save output to
-file_I = File("output/I.pvd", "compressed")  # File to save output to
-file_cn = File("output/cn.pvd", "compressed")  # File to save output to
-file_cp = File("output/cp.pvd", "compressed")  # File to save output to
-file_T = File("output/T.pvd", "compressed")  # File to save output to
+timeplots = False  # If true plots at each time are displayed
+file_V = File("tab_cool_x1000/output_1C/V.pvd", "compressed")  # File to save output to
+file_I = File("tab_cool_x1000/output_1C/I.pvd", "compressed")  # File to save output to
+file_cn = File("tab_cool_x1000/output_1C/cn.pvd", "compressed")  # File to save output to
+file_cp = File("tab_cool_x1000/output_1C/cp.pvd", "compressed")  # File to save output to
+file_T = File("tab_cool_x1000/output_1C/T.pvd", "compressed")  # File to save output to
 
 
 # Load parameters -------------------------------------------------------------
@@ -31,7 +31,7 @@ param = myparams(C_rate, "mypouch")
 
 
 # Initial and boundary conditions ---------------------------------------------
-I_app = 1.0 * C_rate  # Applied current (TO DO: make function of time)
+I_app = 1.0  # Applied current (TO DO: make function of time)
 
 c_n0 = param.c_n_0  # Initial (uniform) negative electrode surface concentration
 c_p0 = param.c_p_0  # Initial (uniform) positive electrode surface concentration
