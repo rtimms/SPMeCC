@@ -2,6 +2,8 @@ from dolfin import *
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy import signal
+
 
 # Optimization options for the form compiler ----------------------------------
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -27,6 +29,7 @@ file_T = File("output_dim/T.pvd", "compressed")  # File to save output to
 C_rate = 1.0
 capacity = 20
 I_app_1C = 20
+I_app_period = 50
 
 # Geometry
 L_cn = 0.25 * 1e-3
@@ -90,9 +93,21 @@ alpha = 1 / (sigma_cp * L_cp) + 1 / (sigma_cn * L_cn)
 
 # Initial conditions
 SOC_init = 0.5
-c_n_init = (SOC_init * (c_n_SOC_max - c_n_SOC_min) + c_n_SOC_min) * c_n_SOC_max
-c_p_init = (SOC_init * (c_p_SOC_max - c_p_SOC_min) + c_p_SOC_min) * c_p_SOC_max
+OCV_init = 3.25
+c_n_init = (SOC_init * (c_n_SOC_max - c_n_SOC_min) + c_n_SOC_min) * c_n_max
+c_p_init = (SOC_init * (c_p_SOC_max - c_p_SOC_min) + c_p_SOC_min) * c_p_max
 T_init = T_infty
+
+
+# Applied current
+def I_app(t):
+    return C_rate * I_app_1C * signal.square(2*np.pi*t / I_app_period)
+
+
+# Timestepping ----------------------------------------------------------------
+t = 0.0  # initial time
+t_final = 3600  # final time
+dt = 1  # step size
 
 
 # Exchange current density ----------------------------------------------------
@@ -129,25 +144,11 @@ def eta_p(I, c, T):
 
 # Open circuit potentials -----------------------------------------------------
 def OCV(c_p, T):
-    return 3.2 + k_U * SOC(c_p)
+    return OCV_init + k_U * SOC(c_p)
 
 
 def SOC(c_p):
     return (c_p / c_p_max - c_p_SOC_min) / (c_p_SOC_max - c_p_SOC_min)
-
-
-# Initial conditions ----------------------------------------------------------
-I_app = Expression("C_rate * I_app_1C", degree=0, t=0, C_rate=C_rate, I_app_1C=I_app_1C)
-
-c_n_0 = 22405  # Initial (uniform) negative electrode surface concentration
-c_p_0 = 29252  # Initial (uniform) positive electrode surface concentration
-T_0 = T_infty  # Initial (uniform) temperature
-
-
-# Timestepping ----------------------------------------------------------------
-t = 0.0  # initial time
-t_final = 3600  # final time
-dt = 1  # step size
 
 
 # x-averaged heat source term -------------------------------------------------
@@ -162,7 +163,7 @@ def Q_bar(psi, V, I, c_n, c_p, T):
     Q_cn = L_cn * sigma_cn * inner(grad(phi_cn), grad(phi_cn))
     Q_cp = L_cp * sigma_cp * inner(grad(phi_cp), grad(phi_cp))
     Q_rxn = -I * (eta_p(I, c_p, T) - eta_n(I, c_n, T))
-    Q_rev = -I * T * Delta_S / n / F
+    Q_rev = I * T * Delta_S / n / F
     return (Q_cn + Q_cp + Q_rxn + Q_rev) / L
 
 
@@ -251,7 +252,7 @@ V_prev, I_prev, c_n_prev, c_p_prev, T_prev = split(u_prev)
 # Class representing the intial conditions
 class InitialConditions(UserExpression):
     def eval(self, values, x):
-        values[0] = OCV(c_p_init, T_init)
+        values[0] = OCV_init
         values[1] = 0.0
         values[2] = c_n_init
         values[3] = c_p_init
@@ -276,8 +277,8 @@ while t < t_final:
 
     # Increase time
     t += dt
-    I_app.t = t
     print("t = {:.0f} seconds".format(t))
+    I_app = Constant(I_app(t))
 
     # Write down weak form F == 0
     F1 = (
@@ -346,39 +347,39 @@ while t < t_final:
         p1 = plot(V_split)
         plt.xlabel("y")
         plt.ylabel("z")
-        plt.title("V")
+        plt.title("V (V)")
         plt.colorbar(p1)
         plt.subplot(2, 3, 2)
         p2 = plot(I_split)
         plt.xlabel("y")
         plt.ylabel("z")
-        plt.title("I")
+        plt.title("I (A/m^2)")
         plt.colorbar(p2)
         plt.subplot(2, 3, 3)
         p3 = plot(T_split)
         plt.xlabel("y")
         plt.ylabel("z")
-        plt.title("T /K")
+        plt.title("T (K)")
         plt.colorbar(p3)
         plt.subplot(2, 3, 4)
         p4 = plot(c_n_split)
         plt.xlabel("y")
         plt.ylabel("z")
-        plt.title("c_n")
+        plt.title("c_n (mol/m^3)")
         plt.colorbar(p4)
         plt.subplot(2, 3, 5)
         p5 = plot(c_p_split)
         plt.xlabel("y")
         plt.ylabel("z")
-        plt.title("c_p")
+        plt.title("c_p (mol/m^3)")
         plt.colorbar(p5)
         plt.subplot(2, 3, 6)
         p6 = plot(Q_bar(psi, V_split, I_split, c_n_split, c_p_split, T_split))
         plt.xlabel("y")
         plt.ylabel("z")
-        plt.title("Q")
+        plt.title("Q (W/m^3)")
         plt.colorbar(p6)
-        plt.suptitle("Solution at t = {:.0f} minutes ".format(t))
+        plt.suptitle("Solution at t = {:.0f} seconds ".format(t))
         plt.show()
 
 
