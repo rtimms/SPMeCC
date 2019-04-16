@@ -32,35 +32,35 @@ I_app_1C = 20
 I_app_period = 50
 
 # Geometry
-L_cn = 0.25 * 1e-3
-L_n = 2.7 * 1e-3
+L_cn = 0.25 * 1E-3 / 20
+L_n = 2.7 * 1E-3 / 40
 L_s = 0.0
-L_p = 2.7 * 1e-3
-L_cp = 0.25 * 1e-3
+L_p = 2.7 * 1E-3 / 40
+L_cp = 0.25 * 1E-3 / 20
 
 L_x = L_cn + L_n + L_p + L_cp
-L_y = 150 * 1e-3
-L_z = 200 * 1e-3
+L_y = 150 * 1E-3
+L_z = 200 * 1E-3
 
 L = L_cn + L_n + L_s + L_p + L_cp
 
-tab_offset = 10 * 1e-3
-tab_width = 48 * 1e-3
+tab_offset = 10 * 1E-3
+tab_width = 48 * 1E-3
 
 A_tab_n = tab_width * L_cn
 A_tab_p = tab_width * L_cp
 
 # Conductivty
-sigma_cn = 5.96 * 1e7
-sigma_cp = 3.55 * 1e7
+sigma_cn = 6 * 1E7
+sigma_cp = 6 * 1E7
 
 # Particle radius
-R_n = 2 * 1e-6
-R_p = 2 * 1e-6
+R_n = 10 * 1E-6
+R_p = 10 * 1E-6
 
 # Particle surface area density
-a_n = 723600
-a_p = 885000
+a_n = 1E7
+a_p = 1E7
 
 # Constants
 F = 96487
@@ -68,11 +68,11 @@ R = 8.314
 T_infty = 298.15
 
 # Electrochemical
+OCV_ref = 3.24
 k_U = 0.36
-Delta_S = 6.8
-n = 1
+dUdT = -0.07
 j_0_ref = 14.31
-E_j0 = 31.79*1E3
+E_j0 = 29.88*1E3
 
 # Concentration
 c_n_max = 31507.
@@ -86,39 +86,40 @@ c_p_SOC_max = 0.9
 rho_eff = 2.32 * 1e6
 lambda_eff = 1
 h = 12.5
-h_tab = 50
+h_tab = 12.5
 
 # Derived
 alpha = 1 / (sigma_cp * L_cp) + 1 / (sigma_cn * L_cn)
 
 # Initial conditions
-SOC_init = 0.5
-OCV_init = 3.25
-c_n_init = (SOC_init * (c_n_SOC_max - c_n_SOC_min) + c_n_SOC_min) * c_n_max
-c_p_init = (SOC_init * (c_p_SOC_max - c_p_SOC_min) + c_p_SOC_min) * c_p_max
+SOC_init = 0.2722
 T_init = T_infty
 
 
 # Applied current
-def I_app(t):
+def current_profile(t):
     return C_rate * I_app_1C * signal.square(2*np.pi*t / I_app_period)
 
+
+I_app = Expression("I_app", I_app=0, degree=0)
 
 # Timestepping ----------------------------------------------------------------
 t = 0.0  # initial time
 t_final = 3600  # final time
-dt = 1  # step size
+dt = 15  # step size
 
 
 # Exchange current density ----------------------------------------------------
 def j_0_n(c, T):
-    Arrhenius = exp((-E_j0 / R)*(1/T - 1/T_infty))
-    return j_0_ref * Arrhenius * sqrt(c/c_n_max) * sqrt((c_n_max - c)/c_n_max)
+    # Arrhenius = exp((-E_j0 / R)*(1/T - 1/T_infty))
+    # return j_0_ref * Arrhenius * sqrt(c/c_n_max) * sqrt((c_n_max - c)/c_n_max)
+    return j_0_ref
 
 
 def j_0_p(c, T):
-    Arrhenius = exp((-E_j0 / R)*(1/T - 1/T_infty))
-    return j_0_ref * Arrhenius * sqrt(c/c_p_max) * sqrt((c_p_max - c)/c_p_max)
+    # Arrhenius = exp((-E_j0 / R)*(1/T - 1/T_infty))
+    # return j_0_ref * Arrhenius * sqrt(c/c_p_max) * sqrt((c_p_max - c)/c_p_max)
+    return j_0_ref
 
 
 # Reaction overpotentials ----------------------------------------------------
@@ -133,7 +134,7 @@ def eta_n(I, c, T):
 
 
 def eta_p(I, c, T):
-    result = (2 * R * T / F) * (
+    result = -(2 * R * T / F) * (
         ln(
             I / (a_p * L_p * j_0_p(c, T))
             + sqrt(1 + (I / (a_p * L_p * j_0_p(c, T)) ** 2))
@@ -144,7 +145,7 @@ def eta_p(I, c, T):
 
 # Open circuit potentials -----------------------------------------------------
 def OCV(c_p, T):
-    return OCV_init + k_U * SOC(c_p)
+    return OCV_ref + k_U * SOC(c_p)
 
 
 def SOC(c_p):
@@ -162,8 +163,8 @@ def Q_bar(psi, V, I, c_n, c_p, T):
 
     Q_cn = L_cn * sigma_cn * inner(grad(phi_cn), grad(phi_cn))
     Q_cp = L_cp * sigma_cp * inner(grad(phi_cp), grad(phi_cp))
-    Q_rxn = -I * (eta_p(I, c_p, T) - eta_n(I, c_n, T))
-    Q_rev = I * T * Delta_S / n / F
+    Q_rxn = - I * (eta_p(I, c_p, T) - eta_n(I, c_n, T))
+    Q_rev = - 0*I * T * dUdT
     return (Q_cn + Q_cp + Q_rxn + Q_rev) / L
 
 
@@ -223,12 +224,6 @@ L_psi = dpsidn_negativetab * psi_test * ds(1) + dpsidn_positivetab * psi_test * 
 psi = Function(psi_functionspace)
 solve(a_psi == L_psi, psi)
 (psi, c) = psi.split()  # Split psi and c from mixed solution
-p = plot(psi)
-plt.xlabel("y")
-plt.ylabel("z")
-plt.title("psi")
-plt.colorbar(p)
-plt.show()
 
 
 # Define and solve time dependent problem for u = [V, I, c_n, c_p, T] ---------
@@ -250,6 +245,11 @@ V_prev, I_prev, c_n_prev, c_p_prev, T_prev = split(u_prev)
 
 
 # Class representing the intial conditions
+c_n_init = (SOC_init * (c_n_SOC_max - c_n_SOC_min) + c_n_SOC_min) * c_n_max
+c_p_init = (SOC_init * (c_p_SOC_max - c_p_SOC_min) + c_p_SOC_min) * c_p_max
+OCV_init = OCV(c_p_init, T)
+
+
 class InitialConditions(UserExpression):
     def eval(self, values, x):
         values[0] = OCV_init
@@ -277,8 +277,8 @@ while t < t_final:
 
     # Increase time
     t += dt
-    print("t = {:.0f} seconds".format(t))
-    I_app = Constant(I_app(t))
+    I_app.I_app = current_profile(t)
+    print("t = {:.0f} seconds. I_app = {:0f} A.".format(t, I_app.I_app))
 
     # Write down weak form F == 0
     F1 = (
@@ -385,39 +385,40 @@ while t < t_final:
 
 # Plot solution ---------------------------------------------------------------
 
-# Font stuff
-plt.rc("text", usetex=True)
-plt.rc("font", family="sans-serif")
-plt.rc("mathtext", fontset="stixsans")
-plt.rc("text.latex", preamble=r"\usepackage{sfmath}")
-plt.rc("xtick", labelsize=18)
-plt.rc("ytick", labelsize=18)
-plt.rc("axes", titlepad=10)
-
-# Make plots
-fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
-ax = plt.gca()
-p1 = plot(V_split)
-p1.set_cmap("viridis")
-plt.xlabel(r"$y$", fontsize=22)
-plt.ylabel(r"$z$", fontsize=22)
-plt.title(r"\textbf{Potential (V)}", fontsize=24)
-divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p1, cax=cax)
-fig.tight_layout()
-plt.savefig("V_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
-
-fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
-ax = plt.gca()
-p2 = plot(T_split)
-p2.set_cmap("plasma")
-plt.xlabel(r"$y$", fontsize=22)
-plt.ylabel(r"$z$", fontsize=22)
-plt.title(r"\textbf{Temperature (K)}", fontsize=24)
-divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p2, cax=cax)
-fig.tight_layout()
-plt.savefig("T_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
-plt.show()
+# # Font stuff
+# plt.rc("text", usetex=True)
+# plt.rc("font", family="sans-serif")
+# plt.rc("mathtext", fontset="stixsans")
+# plt.rc("text.latex", preamble=r"\usepackage{sfmath}")
+# plt.rc("xtick", labelsize=18)
+# plt.rc("ytick", labelsize=18)
+# plt.rc("axes", titlepad=10)
+#
+# # Make plots
+# fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
+# ax = plt.gca()
+# p1 = plot(V_split)
+# p1.set_cmap("viridis")
+# plt.xlabel(r"$y$", fontsize=22)
+# plt.ylabel(r"$z$", fontsize=22)
+# plt.title(r"\textbf{Potential (V)}", fontsize=24)
+# divider = make_axes_locatable(ax)
+# cax = divider.append_axes("right", size="5%", pad=0.05)
+# plt.colorbar(p1, cax=cax)
+# fig.tight_layout()
+# plt.savefig("V_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
+#
+# fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
+# ax = plt.gca()
+# p2 = plot(T_split)
+# p2.set_cmap("plasma")
+# plt.xlabel(r"$y$", fontsize=22)
+# plt.ylabel(r"$z$", fontsize=22)
+# plt.title(r"\textbf{Temperature (K)}", fontsize=24)
+# divider = make_axes_locatable(ax)
+# cax = divider.append_axes("right", size="5%", pad=0.05)
+# plt.colorbar(p2, cax=cax)
+# fig.tight_layout()
+# plt.savefig("T_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
+# plt.show()
+#
