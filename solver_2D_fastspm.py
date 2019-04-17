@@ -49,7 +49,7 @@ dVdn_positivetab = Constant(
 
 # Timestepping ----------------------------------------------------------------
 t = 0.0  # initial time
-t_final = (900) / param.tau_d_star  # final time
+t_final = (1800) / param.tau_d_star  # final time
 dt = 15 / param.tau_d_star  # step size
 
 

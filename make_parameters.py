@@ -71,10 +71,9 @@ class Parameters(object):
             self.V_max = 4.3
 
             # Applied current density
-            #self.I_app_1C = 2.3
-            #self.I_star = (self.C_rate * self.I_app_1C
-            #               / (self.Ly_star * self.Lz_star))
-            self.I_star = 24 * self.C_rate
+            self.I_app_1C = 2.3
+            self.I_star = self.C_rate * self.I_app_1C / self.Lz_star ** 2
+
 
             # Electrical conductivity
             self.sigma_cn_star = 5.96*1E7
