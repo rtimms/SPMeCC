@@ -17,11 +17,11 @@ ffc_options = {
 
 # Visualisation ---------------------------------------------------------------
 timeplots = False  # If true plots at each time are displayed
-file_V = File("tab_cool_x1000/output_1C/V.pvd", "compressed")  # File to save output to
-file_I = File("tab_cool_x1000/output_1C/I.pvd", "compressed")  # File to save output to
-file_cn = File("tab_cool_x1000/output_1C/cn.pvd", "compressed")  # File to save output to
-file_cp = File("tab_cool_x1000/output_1C/cp.pvd", "compressed")  # File to save output to
-file_T = File("tab_cool_x1000/output_1C/T.pvd", "compressed")  # File to save output to
+file_V = File("output/BAMC/tt_2C/V.pvd", "compressed")  # File to save output to
+file_I = File("output/BAMC/tt_2C/I.pvd", "compressed")  # File to save output to
+file_cn = File("output/BAMC/tt_2C/cn.pvd", "compressed")  # File to save output to
+file_cp = File("output/BAMC/tt_2C/cp.pvd", "compressed")  # File to save output to
+file_T = File("output/BAMC/tt_2C/T.pvd", "compressed")  # File to save output to
 
 
 # Load parameters -------------------------------------------------------------
@@ -49,43 +49,38 @@ dVdn_positivetab = Constant(
 
 # Timestepping ----------------------------------------------------------------
 t = 0.0  # initial time
-t_final = (60 * 60) / param.tau_d_star  # final time
+t_final = (900) / param.tau_d_star  # final time
 dt = 15 / param.tau_d_star  # step size
 
 
 # Open circuit potentials -----------------------------------------------------
+def mytanh(x):
+    return (exp(x) - exp(-x))/(exp(x) + exp(-x))
+
+
 def U_n(c, T, param):
-    U_ref = (
-        0.7222
-        + 0.1387 * c
-        + 0.029 * c ** 0.5
-        - 0.0172 / c
-        + 0.0019 / (c ** 1.5)
-        + 0.2808 * exp(0.9 - 15 * c)
-        - 0.7984 * exp(0.4465 * c - 0.4108)
-    )
-    result = (U_ref / param.Phi_star) + T * dUdT_n(c, param)
-    return result
+    U_ref = 0.194 + 1.5*exp(-120.0*c) \
+             + 0.0351*mytanh((c-0.286)/0.083) \
+             - 0.0045*mytanh((c-0.849)/0.119) \
+             - 0.035*mytanh((c-0.9233)/0.05) \
+             - 0.0147*mytanh((c-0.5)/0.034) \
+             - 0.102*mytanh((c-0.194)/0.142) \
+             - 0.022*mytanh((c-0.9)/0.0164) \
+             - 0.011*mytanh((c-0.124)/0.0226) \
+             + 0.0155*mytanh((c-0.105)/0.029)
+    return (U_ref / param.Phi_star) + T * dUdT_n(c, param)
 
 
 def U_p(c, T, param):
-    U_ref = (
-        -4.656
-        + 88.669 * c ** 2
-        - 401.119 * c ** 4
-        + 342.909 * c ** 6
-        - 462.471 * c ** 8
-        + 433.434 * c ** 10
-    ) / (
-        -1
-        + 18.933 * c ** 2
-        - 79.532 * c ** 4
-        + 37.311 * c ** 6
-        - 73.083 * c ** 8
-        + 95.96 * c ** 10
-    )
-    result = (U_ref / param.Phi_star) + T * dUdT_p(c, param)
-    return result
+    stretch = 1.062
+    sto = stretch*c
+    U_ref = 2.16216+0.07645*mytanh(30.834-54.4806*sto) \
+        + 2.1581*mytanh(52.294-50.294*sto) \
+        - 0.14169*mytanh(11.0923-19.8543*sto) \
+        + 0.2051*mytanh(1.4684-5.4888*sto) \
+        + 0.2531*mytanh((-sto+0.56478)/0.1316) \
+        - 0.02167*mytanh((sto-0.525)/0.006)
+    return (U_ref / param.Phi_star) + T * dUdT_n(c, param)
 
 
 def dUdT_n(c, param):
@@ -187,7 +182,7 @@ def Q_bar(psi, V, I, c_n, c_p, T, param):
 
 # Meshing ---------------------------------------------------------------------
 # Create mesh
-mesh = RectangleMesh(Point(0, 0), Point(param.Ly, 1), 64, 64)
+mesh = RectangleMesh(Point(0, 0), Point(param.Ly, 1), 32, 32)
 
 
 # Create classes for defining tabs
@@ -540,18 +535,18 @@ plt.rc("ytick", labelsize=18)
 plt.rc("axes", titlepad=10)
 
 # Make plots
-fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
-ax = plt.gca()
-p1 = plot(V_split)
-p1.set_cmap("viridis")
-plt.xlabel(r"$y$", fontsize=22)
-plt.ylabel(r"$z$", fontsize=22)
-plt.title(r"\textbf{Potential (V)}", fontsize=24)
-divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p1, cax=cax)
-fig.tight_layout()
-plt.savefig("V_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
+#fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
+#ax = plt.gca()
+#p1 = plot(V_split)
+#p1.set_cmap("viridis")
+#plt.xlabel(r"$y$", fontsize=22)
+#plt.ylabel(r"$z$", fontsize=22)
+#plt.title(r"\textbf{Potential (V)}", fontsize=24)
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes("right", size="5%", pad=0.05)
+#plt.colorbar(p1, cax=cax)
+#fig.tight_layout()
+#plt.savefig("V_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
 
 fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
 ax = plt.gca()
@@ -559,10 +554,50 @@ p2 = plot(param.T_0_star + param.Delta_T_star * T_split)
 p2.set_cmap("plasma")
 plt.xlabel(r"$y$", fontsize=22)
 plt.ylabel(r"$z$", fontsize=22)
-plt.title(r"\textbf{Temperature (K)}", fontsize=24)
+plt.title(r"$T$ /K", fontsize=24)
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
 plt.colorbar(p2, cax=cax)
 fig.tight_layout()
-plt.savefig("T_2D.eps", format="eps", dpi=1000, bbox_inches="tight")
+plt.savefig("T.eps", format="eps", dpi=1000, bbox_inches="tight")
+
+fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
+ax = plt.gca()
+p3 = plot(I_split)
+p3.set_cmap("viridis")
+plt.xlabel(r"$y$", fontsize=22)
+plt.ylabel(r"$z$", fontsize=22)
+plt.title(r"$\mathcal{I}$", fontsize=24)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="5%", pad=0.05)
+plt.colorbar(p3, cax=cax)
+fig.tight_layout()
+plt.savefig("I.eps", format="eps", dpi=1000, bbox_inches="tight")
+
+fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
+ax = plt.gca()
+p4 = plot(c_n_split)
+p4.set_cmap("BuGn")
+plt.xlabel(r"$y$", fontsize=22)
+plt.ylabel(r"$z$", fontsize=22)
+plt.title(r"$c_n$", fontsize=24)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="5%", pad=0.05)
+plt.colorbar(p4, cax=cax)
+fig.tight_layout()
+plt.savefig("cn.eps", format="eps", dpi=1000, bbox_inches="tight")
+
+fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
+ax = plt.gca()
+p5 = plot(c_p_split)
+p5.set_cmap("RdPu")
+plt.xlabel(r"$y$", fontsize=22)
+plt.ylabel(r"$z$", fontsize=22)
+plt.title(r"$c_p$", fontsize=24)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="5%", pad=0.05)
+plt.colorbar(p5, cax=cax)
+fig.tight_layout()
+plt.savefig("cp.eps", format="eps", dpi=1000, bbox_inches="tight")
+
 plt.show()

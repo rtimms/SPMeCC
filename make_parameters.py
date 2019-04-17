@@ -17,26 +17,34 @@ class Parameters(object):
         self.name = name
 
         # Load up dimensional parameters
-        if self.name == 'mypouch':
-            # Geometry
-            self.L_cn_star = 10.0*1E-6
-            self.L_n_star = 88.0*1E-6
-            self.L_s_star = 25.0*1E-6
-            self.L_p_star = 80.0*1E-6
-            self.L_cp_star = 10*1E-6
+        if self.name == 'mypouch' or 'mypouch_B':
 
-            self.L_tab_n_star = 48*1E-3
-            self.L_tab_p_star = 48*1E-3
-            self.tab_offset_star = 10*1E-3
-            self.tab_n_location = 't'  # Location of negative tab (t, b, l, r)
-            self.tab_p_location = 't'  # Location of negative tab (t, b, l, r)
+            # Geometry
+            self.L_cn_star = 25.0*1E-6
+            self.L_n_star = 100.0*1E-6
+            self.L_s_star = 25.0*1E-6
+            self.L_p_star = 100.0*1E-6
+            self.L_cp_star = 25*1E-6
+
+            if self.name == 'mypouch':
+                self.L_tab_n_star = 48*1E-3
+                self.L_tab_p_star = 48*1E-3
+                self.tab_offset_star = 10*1E-3
+                self.tab_n_location = 't'  # Location of negative tab (t, b, l, r)
+                self.tab_p_location = 't'  # Location of negative tab (t, b, l, r)
+            elif self.name == 'mypouch_B':
+                self.L_tab_n_star = 48*1E-3
+                self.L_tab_p_star = 48*1E-3
+                self.tab_offset_star = 66*1E-3
+                self.tab_n_location = 't'  # Location of negative tab (t, b, l, r)
+                self.tab_p_location = 'b'  # Location of negative tab (t, b, l, r)
 
             self.A_tab_n_star = self.L_cn_star * self.L_tab_n_star
             self.A_tab_p_star = self.L_cp_star * self.L_tab_n_star
 
             self.Lx_star = self.L_n_star + self.L_s_star + self.L_p_star
-            self.Ly_star = 150*1E-3
-            self.Lz_star = 200*1E-3
+            self.Ly_star = 180*1E-3
+            self.Lz_star = 220*1E-3
 
             self.L_star = self.L_cn_star + self.Lx_star + self.L_cp_star
 
@@ -56,9 +64,6 @@ class Parameters(object):
             self.epsilon_f_n = 0.0326
             self.epsilon_f_p = 0.025
 
-            # Typical voltage drop
-            self.Phi_star = 1
-
             # Cutoff voltage
             self.V_min = 2.5
 
@@ -66,12 +71,10 @@ class Parameters(object):
             self.V_max = 4.3
 
             # Applied current density
-            # self.I_app_1C = 2.3
-            # self.I_star = (self.C_rate * self.I_app_1C
-            #                / (self.Ly_star * self.Lz_star))
-            # Fudge to make leading-order SPMeCC current density equivalent
-            # to that applied in LIONSIMBA
-            self.I_star = self.C_rate * 29.23 * (self.Ly_star / self.Lz_star)
+            #self.I_app_1C = 2.3
+            #self.I_star = (self.C_rate * self.I_app_1C
+            #               / (self.Ly_star * self.Lz_star))
+            self.I_star = 24 * self.C_rate
 
             # Electrical conductivity
             self.sigma_cn_star = 5.96*1E7
@@ -79,39 +82,33 @@ class Parameters(object):
             self.sigma_p_star = 100
             self.sigma_cp_star = 3.55*1E7
 
-            # Rescale conductivity as in LIONSIMBA
-            self.sigma_n_eff_star = (self.sigma_n_star
-                                     * (1 - self.epsilon_n - self.epsilon_f_n))
-            self.sigma_p_eff_star = (self.sigma_p_star
-                                     * (1 - self.epsilon_p - self.epsilon_f_p))
-
             # Diffusivity
             self.D_n_tilde_star = 3.9*1E-14
             self.D_p_tilde_star = 1*1E-14
-            self.D_e_typ_star = 7.5*1E-10
+            self.D_e_typ_star = 5.34*1E-10
 
             # Particle
-            self.c_n_max_star = 30555
-            self.c_p_max_star = 51554
-            self.R_n_star = 2*1E-6
-            self.R_p_star = 2*1E-6
-            self.a_n_star = 723600
-            self.a_p_star = 885000
+            self.c_n_max_star = 24983
+            self.c_p_max_star = 51218
+            self.R_n_star = 10*1E-6
+            self.R_p_star = 10*1E-6
+            self.a_n_star = 0.18*1E6
+            self.a_p_star = 0.15*1E6
 
             # Electrochemistry
-            self.m_n_star = 2 * 5.031*1E-11 * 96487
-            self.m_p_star = 2 * 2.334*1E-11 * 96487
+            self.m_n_star = 2*1E-5
+            self.m_p_star = 6*1E-7
 
             self.F_star = 96487
-            self.t_plus = 0.364
+            self.t_plus = 0.4
             self.Rg_star = 8.314
 
             # Density
-            self.rho_cn_star = 8940
-            self.rho_n_star = 2500
-            self.rho_s_star = 1100
-            self.rho_p_star = 2500
-            self.rho_cp_star = 2700
+            self.rho_cn_star = 8954
+            self.rho_n_star = 1657
+            self.rho_s_star = 397
+            self.rho_p_star = 3262
+            self.rho_cp_star = 2707
 
             # Specific heat
             self.cp_cn_star = 385
@@ -129,16 +126,20 @@ class Parameters(object):
 
             # Thermal
             self.T_inf_star = 298.15
-            self.h_star = 12.5
-            self.h_tab_star = self.h_star * 1000
+            self.h_star = 10
+            self.h_tab_star = self.h_star
+
+            # Typical voltage drop
+            self.Phi_star = 1
+
+            # Typical temperature difference
             self.Delta_T_star = self.I_star * self.Phi_star / self.h_star
 
             # Initial conditions
             self.c_e_typ_star = 1e3
-            self.c_n_0_star = 22405
-            self.c_p_0_star = 29252
+            self.c_n_0_star = 19986
+            self.c_p_0_star = 40974
             self.T_0_star = self.T_inf_star
-
         else:
             raise ValueError('Paramters set name not recognised!')
 
@@ -202,9 +203,9 @@ class Parameters(object):
 
         self.sigma_cn = (self.sigma_cn_star * self.Phi_star
                          / self.I_star / self.Lx_star)
-        self.sigma_n = (self.sigma_n_eff_star * self.Phi_star
+        self.sigma_n = (self.sigma_n_star * self.Phi_star
                         / self.I_star / self.Lx_star)
-        self.sigma_p = (self.sigma_p_eff_star * self.Phi_star
+        self.sigma_p = (self.sigma_p_star * self.Phi_star
                         / self.I_star / self.Lx_star)
         self.sigma_cp = (self.sigma_cp_star * self.Phi_star
                          / self.I_star / self.Lx_star)
