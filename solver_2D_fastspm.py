@@ -17,17 +17,17 @@ ffc_options = {
 
 # Visualisation ---------------------------------------------------------------
 timeplots = False  # If true plots at each time are displayed
-file_V = File("output/BAMC/tt_2C/V.pvd", "compressed")  # File to save output to
-file_I = File("output/BAMC/tt_2C/I.pvd", "compressed")  # File to save output to
-file_cn = File("output/BAMC/tt_2C/cn.pvd", "compressed")  # File to save output to
-file_cp = File("output/BAMC/tt_2C/cp.pvd", "compressed")  # File to save output to
-file_T = File("output/BAMC/tt_2C/T.pvd", "compressed")  # File to save output to
+file_V = File("output/BAMC/tb_1C/V.pvd", "compressed")  # File to save output to
+file_I = File("output/BAMC/tb_1C/I.pvd", "compressed")  # File to save output to
+file_cn = File("output/BAMC/tb_1C/cn.pvd", "compressed")  # File to save output to
+file_cp = File("output/BAMC/tb_1C/cp.pvd", "compressed")  # File to save output to
+file_T = File("output/BAMC/tb_1C/T.pvd", "compressed")  # File to save output to
 
 
 # Load parameters -------------------------------------------------------------
 C_rate = 1.0
 # param = Parameters(C_rate)
-param = myparams(C_rate, "mypouch")
+param = myparams(C_rate, "mypouch_B")
 
 # Initial and boundary conditions ---------------------------------------------
 I_app = 1.0  # Applied current (TO DO: make function of time)
@@ -562,53 +562,65 @@ plt.rc("axes", titlepad=10)
 
 fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
 ax = plt.gca()
-p2 = plot(param.T_0_star + param.Delta_T_star * T_split)
+p2 = plot(param.T_0_star + param.Delta_T_star * T_split, vmin=301, vmax=302.5)
 p2.set_cmap("plasma")
 plt.xlabel(r"$y$", fontsize=22)
 plt.ylabel(r"$z$", fontsize=22)
 plt.title(r"$T$ /K", fontsize=24)
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p2, cax=cax)
+ticks = [301, 301.25, 301.5, 301.75, 302, 302.25, 302.5]
+cbar = plt.colorbar(p2, cax=cax, extend='both')
+cbar.set_ticks(ticks)
+cbar.ax.set_yticklabels(ticks)
 fig.tight_layout()
 plt.savefig("T.eps", format="eps", dpi=1000, bbox_inches="tight")
 
 fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
 ax = plt.gca()
-p3 = plot(I_split)
+p3 = plot(I_split, vmin=1.05, vmax=1.4)
 p3.set_cmap("viridis")
 plt.xlabel(r"$y$", fontsize=22)
 plt.ylabel(r"$z$", fontsize=22)
 plt.title(r"$\mathcal{I}$", fontsize=24)
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p3, cax=cax)
+ticks = [1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4]
+cbar = plt.colorbar(p3, cax=cax, extend='both')
+cbar.set_ticks(ticks)
+cbar.ax.set_yticklabels(ticks)
 fig.tight_layout()
 plt.savefig("I.eps", format="eps", dpi=1000, bbox_inches="tight")
 
 fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
 ax = plt.gca()
-p4 = plot(c_n_split)
+p4 = plot(c_n_split, vmin=0.6205, vmax=0.6705)
 p4.set_cmap("BuGn")
 plt.xlabel(r"$y$", fontsize=22)
 plt.ylabel(r"$z$", fontsize=22)
 plt.title(r"$c_n$", fontsize=24)
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p4, cax=cax)
+ticks = [0.62, 0.63, 0.64, 0.65, 0.66, 0.67]
+cbar = plt.colorbar(p4, cax=cax)
+cbar.set_ticks(ticks)
+cbar.ax.set_yticklabels(ticks)
 fig.tight_layout()
 plt.savefig("cn.eps", format="eps", dpi=1000, bbox_inches="tight")
 
 fig = plt.figure(figsize=(12 / 2.54, 18 / 2.54))
 ax = plt.gca()
-p5 = plot(c_p_split)
+p5 = plot(c_p_split, vmin=0.87, vmax=0.9)
 p5.set_cmap("RdPu")
 plt.xlabel(r"$y$", fontsize=22)
 plt.ylabel(r"$z$", fontsize=22)
 plt.title(r"$c_p$", fontsize=24)
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
-plt.colorbar(p5, cax=cax)
+ticks = [0.87, 0.88, 0.89, 0.90]
+cbar = plt.colorbar(p5, cax=cax, extend='both')
+cbar.set_ticks(ticks)
+cbar.ax.set_yticklabels(ticks)
 fig.tight_layout()
 plt.savefig("cp.eps", format="eps", dpi=1000, bbox_inches="tight")
 

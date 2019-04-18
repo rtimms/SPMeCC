@@ -19,11 +19,11 @@ class Parameters(object):
         if self.name == "mypouch" or "mypouch_B":
 
             # Geometry
-            self.L_cn_star = 25.0 * 1e-6
+            self.L_cn_star = 10.0 * 1e-6
             self.L_n_star = 100.0 * 1e-6
             self.L_s_star = 25.0 * 1e-6
             self.L_p_star = 100.0 * 1e-6
-            self.L_cp_star = 25 * 1e-6
+            self.L_cp_star = 10 * 1e-6
 
             if self.name == "mypouch":
                 self.L_tab_n_star = 48 * 1e-3
@@ -123,7 +123,7 @@ class Parameters(object):
 
             # Thermal
             self.T_inf_star = 298.15
-            self.h_star = 10
+            self.h_star = 1
             self.h_tab_star = self.h_star
 
             # Typical voltage drop
