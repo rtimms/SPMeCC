@@ -44,6 +44,28 @@ def get_vars(soln, mesh):
     return c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1
 
 
+def get_fast_pouch_cell_vars(soln, mesh):
+    # TODO: make this correct
+    c_n_idx = mesh.Nr - 1
+    c_p_idx = 2 * (mesh.Nr - 1)
+    c_e_n_idx = (2 * (mesh.Nr - 1)
+                 + (mesh.Nx_n - 1))
+    c_e_s_idx = (2 * (mesh.Nr - 1)
+                 + (mesh.Nx_n - 1) + (mesh.Nx_s - 1))
+    c_e_p_idx = (2 * (mesh.Nr - 1)
+                 + (mesh.Nx_n - 1) + (mesh.Nx_s - 1) + (mesh.Nx_p - 1))
+
+    c_n = soln[0:c_n_idx]
+    c_p = soln[c_n_idx:c_p_idx]
+    c_e_n = soln[c_p_idx:c_e_n_idx]
+    c_e_s = soln[c_e_n_idx:c_e_s_idx]
+    c_e_p = soln[c_e_s_idx:c_e_p_idx]
+    T0 = soln[-2]
+    T1 = soln[-1]
+
+    return c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1
+
+
 def voltage_cutoff(t, y, mesh, param, I_app):
     # Get variables
     c_n, c_p, c_e_n, c_e_s, c_e_p, T0, T1 = get_vars(y, mesh)

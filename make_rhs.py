@@ -458,3 +458,31 @@ def rhs_temperature_spme(
     dT_dt = np.concatenate((dT0_dt, dT1_dt))
 
     return dT_dt
+
+def fast_pouch_cell(t, y, mesh, W, param):
+    # Find I_app
+    I_app = current(t, param)
+
+    # Get variables
+    # TODO: change this to the form it should be
+    c_s_n, c_s_p, c_e_n, c_e_s, c_e_p = ut.get_fast_pouch_cell_vars(y, mesh)
+
+    # Surface concentration for BV
+    c_n_surf = c_n[-1] + (c_n[-1] - c_n[-2]) / 2
+    c_p_surf = c_p[-1] + (c_p[-1] - c_p[-2]) / 2
+
+    # Electrode avergaed electrolyte concentrations and the values at the
+    # electrode/separator interfaces needed for heat source terms
+
+    # Find voltage
+
+    # Find current distribution
+
+    # Update Pprticle concentrations
+    dck_dt = rhs_many_particle(t, c_n, c_p, mesh, param, j)
+
+    # Update electrolyte concentration
+    c_e = np.concatenate([c_e_n, c_e_s, c_e_p])
+    dce_dt = rhs_electrolye(t, c_e, mesh, param, j)
+
+   # 
