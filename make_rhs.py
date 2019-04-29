@@ -1,6 +1,7 @@
 import numpy as np
 
 from current_profile import current
+import open_circuit_potentials as ocp
 import heat_generation as heat
 import utilities as ut
 
@@ -474,18 +475,96 @@ def fast_pouch_cell(t, y, mesh, W, param):
     # Electrode avergaed electrolyte concentrations and the values at the
     # electrode/separator interfaces needed for heat source terms
 
-    # Find voltage -----------------------------------------------------
+    # Find voltage distribution ----------------------------------
 
     # average ocv
-    U
+    T0 = 1
+    u_n =  ocp.U_n(c_n_surf, T0, param)
+    u_p =  ocp.U_p(c_p_surf, T0, param)
+    u_eq = u_p - u_n
 
-    # Find current distribution
+    u_n_av = np.mean(u_n)
+    u_p_av = np.mean(u_p)
+    u_eq_av = u_p_av - u_n_av
 
-    # Update Pprticle concentrations
-    dcdt_s_k = rhs_many_particle(t, c_n, c_p, mesh, param, j)
+    # average reaction overpotential
+    j0_n = param.m_n * param.C_hat_n / param.L_n
+               * c_n_surf ** 0.5 * (1 - c_n_surf) ** 0.5
+               * (c_e_n) ** 0.5
+    j0_p = param.m_p * param.C_hat_p / param.L_p
+               * c_p_surf ** 0.5 * (1 - c_p_surf) ** 0.5
+               * (c_e_p) ** 0.5
+    
+    j0_n_av = np.mean(j_n)
+    j0_p_av = np.mean(j_p)
+
+    eta_r_av = - 2 * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly) 
+            - 2 * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
+ 
+    # average concentration overpotential
+    c_e_n_av = np.trapz(c_e_n, dx=mesh.dx_n, axis=0) / param.L_n
+    c_e_p_av = np.trapz(c_e_p, dx=mesh.dx_p, axis=0) / param.L_p
+    eta_c_av = (2 * (1 - param.t_plus) * np.log(c_e_p_av/c_e_n_av))
+ 
+    # average electrolyte ohmic losses
+    Delta_Phi_elec_av = (- (param.delta * param.nu * I_app
+                         / param.Lambda / param.Ly
+                         / param.electrolyte_conductivity(1))
+                      * (param.L_n / 3 / param.epsilon_n ** param.brug
+                          + param.L_s / param.epsilon_s ** param.brug
+                          + param.L_p / 3 / param.epsilon_p ** param.brug))
+
+    # average solid phase ohmic losses
+    Delta_Phi_solid_av = (- I_app / 3 / param.Ly
+                       * (param.L_p / param.sigma_p
+                          + param.L_n / param.sigma_n))
+
+    # Average through cell-voltage
+    V_through_cell_av = u_eq_av + eta_r_av + eta_c_av + Delta_Phi_elec_av + Delta_Phi_solid_av
+
+    # Find current distribution ----------------------------------------------
+
+    # negative current collector potential
+
+    # positive current collector potential
+
+    # negative solid potential
+    # TODO: add negative current collector potential to the value
+    phi_s_n = I_app / (2 * param.sigma_n * param.L_n * param.Ly) * 
+                mesh.x * (2 * param.L_n - x)
+
+    # positive solid potential
+
+    # electrolyte constant of integration
+
+    # negative electrolyte potential
+
+    # separator electrolyte potential
+
+    # positive electrolyte potential
+
+    # reaction overpotentials
+    eta_n = phi_s_n - phi_e_n - u_n
+    eta_p = phi_s_p - phi_e_p - u_p
+    
+    # interfacial current density (j)
+    j_n = j0_n * np.sinh(eta_n / 2)
+    j_p = j0_p * np.sinh(eta_p / 2)
+
+
+
+    
+
+
+
+    # Update concentrations --------------------------------------------------
+
+    # Update particle concentrations
+    dcdt_s_n = rhs_many_particle(t, c_p, meah, param, j_n)
+    dcdt_s_p = rhs_many_particle(t, c_n, mesh, param, j_p)
 
     # Update electrolyte concentration
     c_e = np.concatenate([c_e_n, c_e_s, c_e_p])
     dcdt_e = rhs_electrolye(t, c_e, mesh, param, j)
 
-   # 
+    # 
