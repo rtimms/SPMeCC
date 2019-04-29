@@ -474,15 +474,18 @@ def fast_pouch_cell(t, y, mesh, W, param):
     # Electrode avergaed electrolyte concentrations and the values at the
     # electrode/separator interfaces needed for heat source terms
 
-    # Find voltage
+    # Find voltage -----------------------------------------------------
+
+    # average ocv
+    U
 
     # Find current distribution
 
     # Update Pprticle concentrations
-    dck_dt = rhs_many_particle(t, c_n, c_p, mesh, param, j)
+    dcdt_s_k = rhs_many_particle(t, c_n, c_p, mesh, param, j)
 
     # Update electrolyte concentration
     c_e = np.concatenate([c_e_n, c_e_s, c_e_p])
-    dce_dt = rhs_electrolye(t, c_e, mesh, param, j)
+    dcdt_e = rhs_electrolye(t, c_e, mesh, param, j)
 
    # 

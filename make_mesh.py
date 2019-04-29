@@ -2,7 +2,6 @@ import numpy as np
 
 
 class FiniteVolumeMesh(object):
-
     def __init__(self, param, Nr=101, N_pts=51, t_steps=100, t_final=3600):
         """
         Generates the meshes used for the Finite Volume discretisation, as well
@@ -46,4 +45,13 @@ class FiniteVolumeMesh(object):
         # Times to compute solution at
         self.t_final = t_final / param.tau_d_star
         self.t_steps = t_steps
-        self.t = np.linspace(0.0, self.t_final, self. t_steps)
+        self.t = np.linspace(0.0, self.t_final, self.t_steps)
+
+        # add on the y-z directions for fast-pouch-cell
+        self.N_y = 10
+        self.y = np.linspace(0, param.Ly)
+        self.dy = self.y[1] - self.y[0]
+
+        self.N_z = 10
+        self.z = np.linspace(0, 1)
+        self.dz = self.z[1] - self.z[0]
