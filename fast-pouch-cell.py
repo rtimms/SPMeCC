@@ -15,13 +15,9 @@ from current_profile import current
 C_rate = 1
 param = make_parameters.Parameters(C_rate, "mypouch")
 
-# Solve psi, W problems and compute effective resistance -----------------------
-Ny, Nz = 64, 64  # Number of gridpoints
-degree = 2  # Degree of polynomial
-psi, W, R_CC, R_cn, R_cp = solve_psi_W(param, Ny, Nz, degree)
 
 # Make grids ------------------------------------------------------------------
-mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=3)
+mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=3, N_y=15, N_z=15)
 
 # number of points required by each variable
 x_neg_pts = mesh.Nx_n
@@ -53,6 +49,14 @@ c_e_s_pts = x_sep_pts
 c_e_p_pts = x_pos_pts
 c_e_pts = x_pts
 
+# Solve psi, W problems and compute effective resistance -----------------------
+degree = 1  # Degree of polynomial (probably need deg=1 to extract values at nodes)
+psi, W, R_CC, R_cn, R_cp = solve_psi_W(param, mesh.N_y - 1, mesh.N_z - 1, degree)
+
+# TODO: sort so that size doesn't change with degree of polynomial
+psi_mat = np.reshape(psi.vector()[:], [1, mesh.N_y, mesh.N_z])
+W_vec = np.reshape(W.vector()[:], [1, mesh.N_y, mesh.N_z])
+
 # Initial conditions ----------------------------------------------------------
 c_n_0 = param.c_n_0 * np.ones(c_s_n_pts)
 c_p_0 = param.c_p_0 * np.ones(c_s_p_pts)
@@ -62,7 +66,7 @@ y_0 = np.concatenate((c_n_0, c_p_0, c_e_0))
 
 # Termination conditions --------------------------------------
 def voltage_cutoff_wrapper(t, y):
-    return ut.voltage_cutoff(t, y, psi, W, R_CC, param, mesh)
+    return ut.voltage_cutoff(t, y, psi_vec, W_vec, R_CC, param, mesh)
 
 
 voltage_cutoff_wrapper.terminal = True
@@ -70,7 +74,7 @@ voltage_cutoff_wrapper.terminal = True
 # Solve IVP --------------------------------------------
 print("Solving Fast Pouch Cell.")
 soln = solve_ivp(
-    lambda t, y: make_rhs.fast_pouch_cell(t, y, psi, W, R_CC, param, mesh),
+    lambda t, y: make_rhs.fast_pouch_cell(t, y, psi_vec, W_vec, R_CC, param, mesh),
     [mesh.t[0], mesh.t[-1]],
     y_0,
     t_eval=mesh.t,
