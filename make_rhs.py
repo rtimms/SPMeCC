@@ -460,27 +460,27 @@ def rhs_temperature_spme(
 
     return dT_dt
 
-def fast_pouch_cell(t, y, mesh, psi, W, R_CC, param):
+
+def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     # Find I_app
     I_app = current(t, param)
 
     # Get variables
-    # TODO: change this to the form it should be
     c_s_n, c_s_p, c_e_n, c_e_s, c_e_p = ut.get_fast_pouch_cell_vars(y, mesh)
 
     # Surface concentration for BV
-    c_n_surf = c_n[-1] + (c_n[-1] - c_n[-2]) / 2
-    c_p_surf = c_p[-1] + (c_p[-1] - c_p[-2]) / 2
+    c_s_n_surf = c_s_n[:, :, -1] + (c_s_n[:, :, -1] - c_s_n[:, :, -2]) / 2
+    c_s_p_surf = c_s_p[:, :, -1] + (c_s_p[:, :, -1] - c_s_p[:, :, -2]) / 2
 
     # Electrode averaged electrolyte concentrations and the values at the
     # electrode/separator interfaces needed for heat source terms
 
-    # Find voltage distribution ----------------------------------
+    # Find voltage ----------------------------------
 
     # average ocv
     T0 = 1
-    u_n =  ocp.U_n(c_n_surf, T0, param)
-    u_p =  ocp.U_p(c_p_surf, T0, param)
+    u_n = ocp.U_n(c_s_n_surf, T0, param)
+    u_p = ocp.U_p(c_s_p_surf, T0, param)
     u_eq = u_p - u_n
 
     u_n_av = np.mean(u_n)
@@ -488,113 +488,167 @@ def fast_pouch_cell(t, y, mesh, psi, W, R_CC, param):
     u_eq_av = u_p_av - u_n_av
 
     # average reaction overpotential
-    j0_n = param.m_n * param.C_hat_n / param.L_n
-               * c_n_surf ** 0.5 * (1 - c_n_surf) ** 0.5
-               * (c_e_n) ** 0.5
-    j0_p = param.m_p * param.C_hat_p / param.L_p
-               * c_p_surf ** 0.5 * (1 - c_p_surf) ** 0.5
-               * (c_e_p) ** 0.5
-    
-    j0_n_av = np.mean(j_n)
-    j0_p_av = np.mean(j_p)
+    j0_n = (
+        param.m_n
+        * param.C_hat_n
+        / param.L_n
+        * c_s_n_surf ** 0.5
+        * (1 - c_s_n_surf) ** 0.5
+        * (c_e_n) ** 0.5
+    )
+    j0_p = (
+        param.m_p
+        * param.C_hat_p
+        / param.L_p
+        * c_s_p_surf ** 0.5
+        * (1 - c_s_p_surf) ** 0.5
+        * (c_e_p) ** 0.5
+    )
+
+    j0_n_av = np.mean(j0_n)
+    j0_p_av = np.mean(j0_p)
 
     eta_n_av = 2 * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
-    eta_p_av = - 2 * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly)
+    eta_p_av = -2 * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly)
     eta_r_av = eta_p_av - eta_n_av
- 
+
     # average concentration overpotential
-    c_e_n_av = np.trapz(c_e_n, dx=mesh.dx_n, axis=0) / param.L_n
-    c_e_p_av = np.trapz(c_e_p, dx=mesh.dx_p, axis=0) / param.L_p
-    eta_c_av = (2 * (1 - param.t_plus) * np.log(c_e_p_av/c_e_n_av))
- 
+    c_e_n_av = np.mean(c_e_n) / param.L_n
+    c_e_p_av = np.mean(c_e_p) / param.L_p
+    eta_c_av = 2 * (1 - param.t_plus) * np.log(c_e_p_av / c_e_n_av)
+
     # average electrolyte ohmic losses
-    Delta_Phi_elec_av = (- (param.delta * param.nu * I_app
-                         / param.Lambda / param.Ly
-                         / param.electrolyte_conductivity(1))
-                      * (param.L_n / 3 / param.epsilon_n ** param.brug
-                          + param.L_s / param.epsilon_s ** param.brug
-                          + param.L_p / 3 / param.epsilon_p ** param.brug))
+    Delta_Phi_elec_av = -(
+        param.delta
+        * param.nu
+        * I_app
+        / param.Lambda
+        / param.Ly
+        / param.electrolyte_conductivity(1)
+    ) * (
+        param.L_n / 3 / param.epsilon_n ** param.brug
+        + param.L_s / param.epsilon_s ** param.brug
+        + param.L_p / 3 / param.epsilon_p ** param.brug
+    )
 
     # average solid phase ohmic losses
-    Delta_Phi_solid_av = (- I_app / 3 / param.Ly
-                       * (param.L_p / param.sigma_p
-                          + param.L_n / param.sigma_n))
+    Delta_Phi_solid_av = (
+        -I_app / 3 / param.Ly * (param.L_p / param.sigma_p + param.L_n / param.sigma_n)
+    )
 
     # Average through cell-voltage
-    V_through_cell_av = u_eq_av + eta_r_av + eta_c_av + Delta_Phi_elec_av + Delta_Phi_solid_av
+    V_through_cell_av = (
+        u_eq_av + eta_r_av + eta_c_av + Delta_Phi_elec_av + Delta_Phi_solid_av
+    )
 
     # Average current collector ohmic losses
-    Delta_Phi_CC = - param.delta * I_app * R_CC
+    Delta_Phi_CC = -param.delta * I_app * R_CC
 
-    # Terminal voltage 
+    # Terminal voltage
     V = V_through_cell_av + Delta_Phi_CC
-
 
     # Find current distribution ----------------------------------------------
 
     # Through-cell voltage distribution
-    alpha = (1 / (param.epsilon ** 2 * param.sigma_cp * param.L_cp) 
-            + 1 / (param.epsilon ** 2 * param.sigma_cn * param.L_cn) )
+    alpha = 1 / (param.epsilon ** 2 * param.sigma_cp * param.L_cp) + 1 / (
+        param.epsilon ** 2 * param.sigma_cn * param.L_cn
+    )
 
     V_through_cell = V_through_cell_av - (I_app / param.Ly) * alpha * W
 
     # negative current collector potential
     sigma_cn_prime = param.epsilon * param.sigma_cn
     sigma_cp_prime = param.epsilon * param.sigma_cp
-    phi_c_n = (I_app * psi - sigma_cp_prime * para.L_cp * V_through_cell) / 
-                ( sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp)
+    phi_c_n = (I_app * psi - sigma_cp_prime * para.L_cp * V_through_cell) / (
+        sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
+    )
 
     # positive current collector potential
-    phi_c_p = (I_app * psi + sigma_cn_prime * para.L_cn * V_through_cell) / 
-                ( sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp)
+    phi_c_p = (I_app * psi + sigma_cn_prime * para.L_cn * V_through_cell) / (
+        sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
+    )
 
     # negative solid potential
-    phi_s_n = phi_c_n +  I_app / (2 * param.sigma_n * param.L_n * param.Ly) * 
-                mesh.x * (2 * param.L_n - x)
+    phi_s_n = phi_c_n + I_app / (2 * param.sigma_n * param.L_n * param.Ly) * mesh.x * (
+        2 * param.L_n - x
+    )
 
     # positive solid potential
-    phi_s_p = phi_c_p + I_app * (mesh.x_p - 1) 
-               * (1 - 2 param.L_p - mesh.x_p) / 
-               ( 2 * param.sigma_p * param.L_p * param.Ly)
- 
+    phi_s_p = phi_c_p + I_app * (mesh.x_p - 1) * (1 - 2 * param.L_p - mesh.x_p) / (
+        2 * param.sigma_p * param.L_p * param.Ly
+    )
+
     # electrolyte constant of integration
-    phi_e_prime = - np.mean(u_n) - eta_n_av 
-                    - 2 * (1-param.t_plus) * np.log(np.mean(c_e_n)) 
-                    + (param.delta * param.nu * I_app * param.L_n) / 
-                      (param.Ly * param.electrolyte_conductivity(1)) 
-                    * (1 / (3 * param.epsilon_n**param.brug) - 
-                       1/ (3 * param.epsilon_s ** param.brug) )
-                    - I_app * param.L_n / 2 / param.sigma_n / param.Ly
-                    + phi_c_n 
+    phi_e_prime = (
+        -np.mean(u_n)
+        - eta_n_av
+        - 2 * (1 - param.t_plus) * np.log(np.mean(c_e_n))
+        + (param.delta * param.nu * I_app * param.L_n)
+        / (param.Ly * param.electrolyte_conductivity(1))
+        * (
+            1 / (3 * param.epsilon_n ** param.brug)
+            - 1 / (3 * param.epsilon_s ** param.brug)
+        )
+        - I_app * param.L_n / 2 / param.sigma_n / param.Ly
+        + phi_c_n
+    )
     # note: need to add phi_c_n in pouch cell case (value on boundary)
 
     # negative electrolyte potential
-    phi_e_n = phi_e_prime + 2 * (1 - param.t_plus) * np.log(c_e_n)
-              - ( param.delta * I_app * param.nu / 
-              ( param.electrolyte_conductivity(1) * param.Ly) ) 
-              * ( (mesh.x_n**2- param.L_n**2)/(2*param.epsilon_n**param.brug * param.L_n) 
-                  + param.L_n / param.epsilon_s**b )
+    phi_e_n = (
+        phi_e_prime
+        + 2 * (1 - param.t_plus) * np.log(c_e_n)
+        - (
+            param.delta
+            * I_app
+            * param.nu
+            / (param.electrolyte_conductivity(1) * param.Ly)
+        )
+        * (
+            (mesh.x_n ** 2 - param.L_n ** 2)
+            / (2 * param.epsilon_n ** param.brug * param.L_n)
+            + param.L_n / param.epsilon_s ** b
+        )
+    )
 
     # separator electrolyte potential
-    phi_e_s = phi_e_prime + 2 * (1 - param.t_plus) * np.log(c_e_s)
-              - ( param.delta * I_app * param.nu / 
-              ( param.electrolyte_conductivity(1) * param.Ly) ) * mesh.x_s
+    phi_e_s = (
+        phi_e_prime
+        + 2 * (1 - param.t_plus) * np.log(c_e_s)
+        - (
+            param.delta
+            * I_app
+            * param.nu
+            / (param.electrolyte_conductivity(1) * param.Ly)
+        )
+        * mesh.x_s
+    )
 
     # positive electrolyte potential
-    phi_e_p = phi_e_prime + 2 * (1 - param.t_plus) * np.log(c_e_p)
-              - ( param.delta * I_app * param.nu / 
-              ( param.electrolyte_conductivity(1) * param.Ly) ) 
-              * ( (mesh.x_p * (2 - mesh.x_p) + param.L_p**2 - 1 ) /                 (2*param.epsilon_p**param.brug * param.L_p) 
-                  + (1 - param.L_p) / param.epsilon_s**b )
+    phi_e_p = (
+        phi_e_prime
+        + 2 * (1 - param.t_plus) * np.log(c_e_p)
+        - (
+            param.delta
+            * I_app
+            * param.nu
+            / (param.electrolyte_conductivity(1) * param.Ly)
+        )
+        * (
+            (mesh.x_p * (2 - mesh.x_p) + param.L_p ** 2 - 1)
+            / (2 * param.epsilon_p ** param.brug * param.L_p)
+            + (1 - param.L_p) / param.epsilon_s ** b
+        )
+    )
 
     # reaction overpotentials
     eta_n = phi_s_n - phi_e_n - u_n
     eta_p = phi_s_p - phi_e_p - u_p
-    
+
     # interfacial current density (j)
     j_n = j0_n * np.sinh(eta_n / 2)
-    j_p = j0_p * np.sinh(eta_p / 2)
 
+    j_p = j0_p * np.sinh(eta_p / 2)
 
     # Update concentrations --------------------------------------------------
 
@@ -604,8 +658,7 @@ def fast_pouch_cell(t, y, mesh, psi, W, R_CC, param):
 
     # Update electrolyte concentration
     c_e = np.concatenate([c_e_n, c_e_s, c_e_p])
-    dcdt_e = rhs_electrolye(t, c_e, mesh, param, I_app/param.Ly)
+    dcdt_e = rhs_electrolye(t, c_e, mesh, param, I_app / param.Ly)
 
     # Concatenate RHS
-    return = np.concatenate((dck_dt, dce_dt, dT_dt))
-
+    return np.concatenate((dcdt_s_n, dedt_e))

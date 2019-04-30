@@ -48,10 +48,10 @@ class FiniteVolumeMesh(object):
         self.t = np.linspace(0.0, self.t_final, self.t_steps)
 
         # add on the y-z directions for fast-pouch-cell
-        self.N_y = 10
+        self.N_y = 4
         self.y = np.linspace(0, param.Ly)
         self.dy = self.y[1] - self.y[0]
 
-        self.N_z = 10
+        self.N_z = 4
         self.z = np.linspace(0, 1)
         self.dz = self.z[1] - self.z[0]
