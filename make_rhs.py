@@ -469,8 +469,8 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     c_s_n, c_s_p, c_e_n, c_e_s, c_e_p = ut.get_fast_pouch_cell_vars(y, mesh)
 
     # Surface concentration for BV
-    c_s_n_surf = c_s_n[:, :, -1] + (c_s_n[:, :, -1] - c_s_n[:, :, -2]) / 2
-    c_s_p_surf = c_s_p[:, :, -1] + (c_s_p[:, :, -1] - c_s_p[:, :, -2]) / 2
+    c_s_n_surf = c_s_n[:, :, :, -1] + (c_s_n[:, :, :, -1] - c_s_n[:, :, :, -2]) / 2
+    c_s_p_surf = c_s_p[:, :, :, -1] + (c_s_p[:, :, :,  -1] - c_s_p[:, :, :, -2]) / 2
 
     # Electrode averaged electrolyte concentrations and the values at the
     # electrode/separator interfaces needed for heat source terms
@@ -559,18 +559,18 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     # negative current collector potential
     sigma_cn_prime = param.epsilon * param.sigma_cn
     sigma_cp_prime = param.epsilon * param.sigma_cp
-    phi_c_n = (I_app * psi - sigma_cp_prime * para.L_cp * V_through_cell) / (
+    phi_c_n = (I_app * psi - sigma_cp_prime * param.L_cp * V_through_cell) / (
         sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
     )
 
     # positive current collector potential
-    phi_c_p = (I_app * psi + sigma_cn_prime * para.L_cn * V_through_cell) / (
+    phi_c_p = (I_app * psi + sigma_cn_prime * param.L_cn * V_through_cell) / (
         sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
     )
 
     # negative solid potential
-    phi_s_n = phi_c_n + I_app / (2 * param.sigma_n * param.L_n * param.Ly) * mesh.x * (
-        2 * param.L_n - x
+    phi_s_n = phi_c_n + I_app / (2 * param.sigma_n * param.L_n * param.Ly) * mesh.x_n * (
+        2 * param.L_n - mesh.x_n
     )
 
     # positive solid potential
@@ -607,7 +607,7 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
         * (
             (mesh.x_n ** 2 - param.L_n ** 2)
             / (2 * param.epsilon_n ** param.brug * param.L_n)
-            + param.L_n / param.epsilon_s ** b
+            + param.L_n / param.epsilon_s ** param.brug
         )
     )
 
@@ -637,7 +637,7 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
         * (
             (mesh.x_p * (2 - mesh.x_p) + param.L_p ** 2 - 1)
             / (2 * param.epsilon_p ** param.brug * param.L_p)
-            + (1 - param.L_p) / param.epsilon_s ** b
+            + (1 - param.L_p) / param.epsilon_s ** param.brug
         )
     )
 
@@ -651,6 +651,7 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     j_p = j0_p * np.sinh(eta_p / 2)
 
     # Update concentrations --------------------------------------------------
+    # TODO: change the updater functions
 
     # Update particle concentrations
     dcdt_s_n = rhs_many_particle(t, c_p, mesh, param, j_n)

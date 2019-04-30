@@ -21,7 +21,7 @@ degree = 2  # Degree of polynomial
 psi, W, R_CC, R_cn, R_cp = solve_psi_W(param, Ny, Nz, degree)
 
 # Make grids ------------------------------------------------------------------
-mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=16)
+mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=3)
 
 # number of points required by each variable
 x_neg_pts = mesh.Nx_n
@@ -54,9 +54,9 @@ c_e_p_pts = x_pos_pts
 c_e_pts = x_pts
 
 # Initial conditions ----------------------------------------------------------
-c_n_0 = param.c_n_0 * np.ones(c_s_n_pts - 1)
-c_p_0 = param.c_p_0 * np.ones(c_s_p_pts - 1)
-c_e_0 = np.zeros(c_e_pts - 3)
+c_n_0 = param.c_n_0 * np.ones(c_s_n_pts)
+c_p_0 = param.c_p_0 * np.ones(c_s_p_pts)
+c_e_0 = np.ones(c_e_pts)
 y_0 = np.concatenate((c_n_0, c_p_0, c_e_0))
 
 

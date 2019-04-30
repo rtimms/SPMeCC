@@ -70,11 +70,11 @@ def get_fast_pouch_cell_vars(soln, mesh):
     c_e_p_pts = x_pos_pts
 
     # indexes
-    c_s_n_idx = c_s_n_pts - 1
-    c_s_p_idx = c_s_n_idx + c_s_p_pts - 1
-    c_e_n_idx = c_s_p_idx + c_e_n_pts - 1
-    c_e_s_idx = c_e_n_idx + c_e_s_pts - 1
-    c_e_p_idx = c_e_s_idx + c_e_p_pts - 1
+    c_s_n_idx = c_s_n_pts
+    c_s_p_idx = c_s_n_idx + c_s_p_pts
+    c_e_n_idx = c_s_p_idx + c_e_n_pts
+    c_e_s_idx = c_e_n_idx + c_e_s_pts
+    c_e_p_idx = c_e_s_idx + c_e_p_pts
 
     # extract entries
     c_s_n = soln[0:c_s_n_idx]
@@ -89,6 +89,10 @@ def get_fast_pouch_cell_vars(soln, mesh):
 
     pos_shape = [x_pos_pts, y_pts, z_pts, r_pos_pts]
     c_s_p = np.reshape(c_s_p, pos_shape)
+
+    # reshape electrolyte for multiplying with particles
+    c_e_n = np.reshape(c_e_n, [len(c_e_n), 1, 1])
+    c_e_p = np.reshape(c_e_p, [len(c_e_p), 1, 1])
 
     return c_s_n, c_s_p, c_e_n, c_e_s, c_e_p
 
