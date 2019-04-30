@@ -460,7 +460,7 @@ def rhs_temperature_spme(
 
     return dT_dt
 
-def fast_pouch_cell(t, y, mesh, W, param):
+def fast_pouch_cell(t, y, mesh, psi, W, R_CC, param):
     # Find I_app
     I_app = current(t, param)
 
@@ -472,7 +472,7 @@ def fast_pouch_cell(t, y, mesh, W, param):
     c_n_surf = c_n[-1] + (c_n[-1] - c_n[-2]) / 2
     c_p_surf = c_p[-1] + (c_p[-1] - c_p[-2]) / 2
 
-    # Electrode avergaed electrolyte concentrations and the values at the
+    # Electrode averaged electrolyte concentrations and the values at the
     # electrode/separator interfaces needed for heat source terms
 
     # Find voltage distribution ----------------------------------
@@ -498,8 +498,9 @@ def fast_pouch_cell(t, y, mesh, W, param):
     j0_n_av = np.mean(j_n)
     j0_p_av = np.mean(j_p)
 
-    eta_r_av = - 2 * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly) 
-            - 2 * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
+    eta_n_av = 2 * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
+    eta_p_av = - 2 * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly)
+    eta_r_av = eta_p_av - eta_n_av
  
     # average concentration overpotential
     c_e_n_av = np.trapz(c_e_n, dx=mesh.dx_n, axis=0) / param.L_n
@@ -522,26 +523,69 @@ def fast_pouch_cell(t, y, mesh, W, param):
     # Average through cell-voltage
     V_through_cell_av = u_eq_av + eta_r_av + eta_c_av + Delta_Phi_elec_av + Delta_Phi_solid_av
 
+    # Average current collector ohmic losses
+    Delta_Phi_CC = - param.delta * I_app * R_CC
+
+    # Terminal voltage 
+    V = V_through_cell_av + Delta_Phi_CC
+
+
     # Find current distribution ----------------------------------------------
 
+    # Through-cell voltage distribution
+    alpha = (1 / (param.epsilon ** 2 * param.sigma_cp * param.L_cp) 
+            + 1 / (param.epsilon ** 2 * param.sigma_cn * param.L_cn) )
+
+    V_through_cell = V_through_cell_av - (I_app / param.Ly) * alpha * W
+
     # negative current collector potential
+    sigma_cn_prime = param.epsilon * param.sigma_cn
+    sigma_cp_prime = param.epsilon * param.sigma_cp
+    phi_c_n = (I_app * psi - sigma_cp_prime * para.L_cp * V_through_cell) / 
+                ( sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp)
 
     # positive current collector potential
+    phi_c_p = (I_app * psi + sigma_cn_prime * para.L_cn * V_through_cell) / 
+                ( sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp)
 
     # negative solid potential
-    # TODO: add negative current collector potential to the value
-    phi_s_n = I_app / (2 * param.sigma_n * param.L_n * param.Ly) * 
+    phi_s_n = phi_c_n +  I_app / (2 * param.sigma_n * param.L_n * param.Ly) * 
                 mesh.x * (2 * param.L_n - x)
 
     # positive solid potential
-
+    phi_s_p = phi_c_p + I_app * (mesh.x_p - 1) 
+               * (1 - 2 param.L_p - mesh.x_p) / 
+               ( 2 * param.sigma_p * param.L_p * param.Ly)
+ 
     # electrolyte constant of integration
+    phi_e_prime = - np.mean(u_n) - eta_n_av 
+                    - 2 * (1-param.t_plus) * np.log(np.mean(c_e_n)) 
+                    + (param.delta * param.nu * I_app * param.L_n) / 
+                      (param.Ly * param.electrolyte_conductivity(1)) 
+                    * (1 / (3 * param.epsilon_n**param.brug) - 
+                       1/ (3 * param.epsilon_s ** param.brug) )
+                    - I_app * param.L_n / 2 / param.sigma_n / param.Ly
+                    + phi_c_n 
+    # note: need to add phi_c_n in pouch cell case (value on boundary)
 
     # negative electrolyte potential
+    phi_e_n = phi_e_prime + 2 * (1 - param.t_plus) * np.log(c_e_n)
+              - ( param.delta * I_app * param.nu / 
+              ( param.electrolyte_conductivity(1) * param.Ly) ) 
+              * ( (mesh.x_n**2- param.L_n**2)/(2*param.epsilon_n**param.brug * param.L_n) 
+                  + param.L_n / param.epsilon_s**b )
 
     # separator electrolyte potential
+    phi_e_s = phi_e_prime + 2 * (1 - param.t_plus) * np.log(c_e_s)
+              - ( param.delta * I_app * param.nu / 
+              ( param.electrolyte_conductivity(1) * param.Ly) ) * mesh.x_s
 
     # positive electrolyte potential
+    phi_e_p = phi_e_prime + 2 * (1 - param.t_plus) * np.log(c_e_p)
+              - ( param.delta * I_app * param.nu / 
+              ( param.electrolyte_conductivity(1) * param.Ly) ) 
+              * ( (mesh.x_p * (2 - mesh.x_p) + param.L_p**2 - 1 ) /                 (2*param.epsilon_p**param.brug * param.L_p) 
+                  + (1 - param.L_p) / param.epsilon_s**b )
 
     # reaction overpotentials
     eta_n = phi_s_n - phi_e_n - u_n
@@ -552,19 +596,16 @@ def fast_pouch_cell(t, y, mesh, W, param):
     j_p = j0_p * np.sinh(eta_p / 2)
 
 
-
-    
-
-
-
     # Update concentrations --------------------------------------------------
 
     # Update particle concentrations
-    dcdt_s_n = rhs_many_particle(t, c_p, meah, param, j_n)
+    dcdt_s_n = rhs_many_particle(t, c_p, mesh, param, j_n)
     dcdt_s_p = rhs_many_particle(t, c_n, mesh, param, j_p)
 
     # Update electrolyte concentration
     c_e = np.concatenate([c_e_n, c_e_s, c_e_p])
-    dcdt_e = rhs_electrolye(t, c_e, mesh, param, j)
+    dcdt_e = rhs_electrolye(t, c_e, mesh, param, I_app/param.Ly)
 
-    # 
+    # Concatenate RHS
+    return = np.concatenate((dck_dt, dce_dt, dT_dt))
+

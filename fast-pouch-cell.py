@@ -15,7 +15,7 @@ from current_profile import current
 C_rate = 2
 param = make_parameters.Parameters(C_rate, "mypouch")
 
-# Solve psi, W problems and compute effective resitance -----------------------
+# Solve psi, W problems and compute effective resistance -----------------------
 Ny, Nz = 64, 64  # Number of gridpoints
 degree = 2  # Degree of polynomial
 psi, W, R_CC, R_cn, R_cp = solve_psi_W(param, Ny, Nz, degree)
@@ -39,7 +39,7 @@ voltage_cutoff_wrapper.terminal = True
 # Solve IVP
 print("Solving Fast Pouch Cell.")
 soln = solve_ivp(
-    lambda t, y: make_rhs.rhs_spmecc(t, y, mesh, R_cn, R_cp, param),
+    lambda t, y: make_rhs.fast_pouch_cell(t, y, mesh, psi, W, R_CC, param),
     [mesh.t[0], mesh.t[-1]],
     y_0,
     t_eval=mesh.t,
