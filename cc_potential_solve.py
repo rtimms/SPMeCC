@@ -11,6 +11,7 @@
 # this should all collapse down onto the same equations if we rescale the R_c_ks by the rhs of their respective problems. The only difference is the tab position.
 
 import dolfin as df
+import numpy as np
 
 
 def solve_cc_potentials(param, Ny, Nz, degree=1):
@@ -94,17 +95,17 @@ def solve_cc_potentials(param, Ny, Nz, degree=1):
                 raise ValueError("Pos. tab location must be one of " "t, b, l, r!")
 
     # Initialize sub-domain instances fot tabs
-    negative_tab = NegativeTab()
-    positive_tab = PositiveTab()
+    # negative_tab = NegativeTab()
+    # positive_tab = PositiveTab()
 
-    # Initialize mesh function for boundary domains
-    boundary_markers = df.MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-    boundary_markers.set_all(0)
-    negative_tab.mark(boundary_markers, 1)
-    positive_tab.mark(boundary_markers, 2)
+    # # Initialize mesh function for boundary domains
+    # boundary_markers = df.MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+    # boundary_markers.set_all(0)
+    # negative_tab.mark(boundary_markers, 1)
+    # positive_tab.mark(boundary_markers, 2)
 
     # Create measure of parts of the boundary
-    ds = df.Measure("ds", domain=mesh, subdomain_data=boundary_markers)
+    # ds = df.Measure("ds", domain=mesh, subdomain_data=boundary_markers)
 
     # Define functions space to solve R_c_n and R_c_p on
     V = df.FunctionSpace(mesh, "CG", degree)
@@ -118,15 +119,23 @@ def solve_cc_potentials(param, Ny, Nz, degree=1):
     R_c_p_test = df.TestFunction(V)
 
     # boundary conditions
-    bc_negative_tab = df.DirichletBC(V, df.Constant(0), negative_tab)
-    bc_positive_tab = df.DirichletBC(V, df.Constant(0), positive_tab)
+    bc_negative_tab = df.DirichletBC(V, df.Constant(0), NegativeTab())
+    bc_positive_tab = df.DirichletBC(V, df.Constant(0), PositiveTab())
 
     # Weak form
     a_n = (df.inner(df.grad(R_c_n), df.grad(R_c_n_test))) * df.dx
     a_p = (df.inner(df.grad(R_c_p), df.grad(R_c_p_test))) * df.dx
 
-    L_n = 1 / (param.L_cn * param.Ly * param.sigma_cn * param.epsilon ** 2)
-    L_p = 1 / (param.L_cp * param.Ly * param.sigma_cp * param.epsilon ** 2)
+    L_n = (
+        df.Constant(1 / (param.L_cn * param.Ly * param.sigma_cn * param.epsilon ** 2))
+        * R_c_n_test
+        * df.dx
+    )
+    L_p = (
+        df.Constant(1 / (param.L_cp * param.Ly * param.sigma_cp * param.epsilon ** 2))
+        * R_c_p_test
+        * df.dx
+    )
 
     # Create output variables
     R_c_n = df.Function(V)
