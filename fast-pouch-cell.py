@@ -18,7 +18,9 @@ param = make_parameters.Parameters(C_rate, "mypouch")
 
 
 # Make grids ------------------------------------------------------------------
-mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=3, N_y=10, N_z=10)
+mesh = make_mesh.FiniteVolumeMesh(
+    param, Nr=3, N_pts=3, N_y=10, N_z=10, t_steps=1000, t_final=0.14
+)
 
 # number of points required by each variable
 x_neg_pts = mesh.Nx_n
@@ -60,15 +62,16 @@ R_c_n_array = np.reshape(R_c_n.vector()[:], [1, mesh.N_y, mesh.N_z])
 R_c_p_array = np.reshape(R_c_p.vector()[:], [1, mesh.N_y, mesh.N_z])
 
 # Initial conditions ----------------------------------------------------------
+param.c_n_0 = 0.8
+param.c_p_0 = 0.6
 c_n_0 = param.c_n_0 * np.ones(c_s_n_pts)
 c_p_0 = param.c_p_0 * np.ones(c_s_p_pts)
 c_e_0 = np.ones(c_e_pts)
 y_0 = np.concatenate((c_n_0, c_p_0, c_e_0))
 
-
 # Termination conditions --------------------------------------
 def voltage_cutoff_wrapper(t, y):
-    return ut.voltage_cutoff(t, y, psi_vec, W_vec, R_CC, param, mesh)
+    return ut.voltage_cutoff(t, y, R_cc, param, mesh)
 
 
 voltage_cutoff_wrapper.terminal = True
@@ -76,13 +79,27 @@ voltage_cutoff_wrapper.terminal = True
 # Solve IVP --------------------------------------------
 print("Solving Fast Pouch Cell.")
 soln = solve_ivp(
-    lambda t, y: make_rhs.fast_pouch_cell(t, y, psi_vec, W_vec, R_CC, param, mesh),
+    lambda t, y: make_rhs.fast_pouch_cell(
+        t, y, R_c_n_array, R_c_p_array, R_cc, param, mesh
+    ),
     [mesh.t[0], mesh.t[-1]],
     y_0,
     t_eval=mesh.t,
-    rtol=1e-8,
-    atol=1e-8,
+    rtol=1e-1,
+    atol=1e-1,
     method="BDF",
     events=[voltage_cutoff_wrapper],
 )
+# soln = solve_ivp(
+#     lambda t, y: make_rhs.fast_pouch_cell(
+#         t, y, R_c_n_array, R_c_p_array, R_cc, param, mesh
+#     ),
+#     [mesh.t[0], mesh.t[-1]],
+#     y_0,
+#     t_eval=mesh.t,
+#     rtol=1e-8,
+#     atol=1e-8,
+#     method="BDF",
+#     events=[voltage_cutoff_wrapper],
+# )
 

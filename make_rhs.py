@@ -461,7 +461,117 @@ def rhs_temperature_spme(
     return dT_dt
 
 
-def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
+def rhs_many_particle(t, c_s_n, c_s_p, j_n, j_p, param, mesh):
+    # Compute fluxes
+    q_n = -(
+        param.gamma_n
+        * param.solid_diffusivity_n((c_s_n[:, :, :, 1:] + c_s_n[:, :, :, 0:-1]) / 2)
+        * mesh.r[:, :, :, 1:-1] ** 2
+        * (c_s_n[:, :, :, 1:] - c_s_n[:, :, :, 0:-1])
+        / mesh.dr
+    )
+
+    q_n_surf = j_n / param.beta_n / param.C_hat_n
+    q_p = -(
+        param.gamma_p
+        * param.solid_diffusivity_p((c_s_p[:, :, :, 1:] + c_s_p[:, :, :, 0:-1]) / 2)
+        * mesh.r[:, :, :, 1:-1] ** 2
+        * (c_s_p[:, :, :, 1:] - c_s_p[:, :, :, 0:-1])
+        / mesh.dr
+    )
+    q_p_surf = j_p / param.beta_p / param.C_hat_p
+
+    # Append boundary conditions
+    n_shape = list(q_n_surf.shape) + [1]
+    q_n_centre = np.zeros(n_shape)
+    q_n_surf = np.reshape(q_n_surf, n_shape)
+    q_n = np.concatenate((q_n_centre, q_n, q_n_surf), axis=3)
+
+    p_shape = list(q_p_surf.shape) + [1]
+    q_p_centre = np.zeros(p_shape)
+    q_p_surf = np.reshape(q_p_surf, p_shape)
+    q_p = np.concatenate((q_p_centre, q_p, q_p_surf), axis=3)
+
+    # Compute discretised dc/dt
+    r = np.linspace(0, 1, mesh.Nr+1) # can't be bothered working out what this should really be: nodes or edges? 
+    r = np.reshape(r, [1,1,1,len(r)])
+    vol = (1 / 3) * (r[:, :, :, 1:] ** 3 - r[:, :, :, 0:-1] ** 3)
+    dcdt_n = -(q_n[:, :, :, 1:] - q_n[:, :, :, 0:-1]) / vol
+    dcdt_p = -(q_p[:, :, :, 1:] - q_p[:, :, :, 0:-1]) / vol
+
+    # reshape into lists
+    dcdt_n = np.reshape(dcdt_n, [dcdt_n.size])
+    dcdt_p = np.reshape(dcdt_p, [dcdt_p.size])
+    dc_dt = np.concatenate((dcdt_n, dcdt_p))
+
+    return dc_dt
+
+def averaged_electrolyte(t, c, I_app, param, mesh):
+    dx = np.concatenate(
+        (
+            mesh.dx_n * np.ones(mesh.Nx_n),
+            mesh.dx_s * np.ones(mesh.Nx_s),
+            mesh.dx_p * np.ones(mesh.Nx_p),
+        )
+    )
+
+    dx = np.reshape(dx, [len(dx), 1, 1])
+
+    # Bruggman correction of the effective diffusivity
+    brug = np.concatenate(
+        (
+            param.epsilon_n ** param.brug * np.ones([mesh.Nx_n,1,1]),
+            param.epsilon_s ** param.brug * np.ones([mesh.Nx_s, 1, 1]),
+            param.epsilon_p ** param.brug * np.ones([mesh.Nx_p, 1, 1]),
+        )
+    )
+
+    # Take harmonic mean of the brug coefficients (as in LIONSIMBA paper)
+    beta = dx[0:1] / (dx[0:-1] + dx[1:])
+    brug_eff = brug[0:-1] * brug[1:] / (beta * brug[0:-1] + (1 - beta) * brug[1:])
+
+    # Compute flux
+    N = -(
+        brug_eff
+        * param.electrolyte_diffusivity(1)
+        * (c[1:] - c[0:-1])
+        / (dx[1:] / 2 + dx[0:-1] / 2)
+    )
+
+    # Append boundary conditions
+    bcs = np.zeros([1,1,1])
+    N = np.concatenate((bcs, N, bcs))
+
+    # Compute source terms
+    R_n = (param.nu * (1 - param.t_plus) * I_app / param.Ly / param.L_n) * np.ones(
+        [mesh.Nx_n, 1, 1]
+    )
+    R_s = np.zeros([mesh.Nx_s, 1, 1])
+    R_p = -(
+        (param.nu * (1 - param.t_plus) * I_app / param.Ly / param.L_p)
+        * np.ones([mesh.Nx_p, 1, 1])
+    )
+    R = np.concatenate((R_n, R_s, R_p))
+
+    # Compute discretised dc/dt
+    dc_dt = (
+        (-(N[1:] - N[0:-1]) / dx / param.delta + R)
+        / np.concatenate(
+            (
+                param.epsilon_n * np.ones([mesh.Nx_n, 1, 1]),
+                param.epsilon_s * np.ones([mesh.Nx_s, 1, 1]),
+                param.epsilon_p * np.ones([mesh.Nx_p, 1, 1]),
+            )
+        )
+    )
+
+    dcdt_e = np.reshape(dc_dt, [dc_dt.size])
+
+    return dcdt_e
+
+
+
+def fast_pouch_cell(t, y, R_c_n_array, R_c_p_array, R_CC, param, mesh):
     # Find I_app
     I_app = current(t, param)
 
@@ -470,7 +580,7 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
 
     # Surface concentration for BV
     c_s_n_surf = c_s_n[:, :, :, -1] + (c_s_n[:, :, :, -1] - c_s_n[:, :, :, -2]) / 2
-    c_s_p_surf = c_s_p[:, :, :, -1] + (c_s_p[:, :, :,  -1] - c_s_p[:, :, :, -2]) / 2
+    c_s_p_surf = c_s_p[:, :, :, -1] + (c_s_p[:, :, :, -1] - c_s_p[:, :, :, -2]) / 2
 
     # Electrode averaged electrolyte concentrations and the values at the
     # electrode/separator interfaces needed for heat source terms
@@ -508,14 +618,14 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     j0_n_av = np.mean(j0_n)
     j0_p_av = np.mean(j0_p)
 
-    eta_n_av = 2 * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
-    eta_p_av = -2 * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly)
+    eta_n_av = (2/param.Lambda) * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
+    eta_p_av = -(2/param.Lambda) * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly)
     eta_r_av = eta_p_av - eta_n_av
 
     # average concentration overpotential
     c_e_n_av = np.mean(c_e_n) / param.L_n
     c_e_p_av = np.mean(c_e_p) / param.L_p
-    eta_c_av = 2 * (1 - param.t_plus) * np.log(c_e_p_av / c_e_n_av)
+    eta_c_av = (2/param.Lambda) * (1 - param.t_plus) * np.log(c_e_p_av / c_e_n_av)
 
     # average electrolyte ohmic losses
     Delta_Phi_elec_av = -(
@@ -542,7 +652,7 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     )
 
     # Average current collector ohmic losses
-    Delta_Phi_CC = -param.delta * I_app * R_CC
+    Delta_Phi_CC = -I_app * R_CC
 
     # Terminal voltage
     V = V_through_cell_av + Delta_Phi_CC
@@ -550,28 +660,29 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     # Find current distribution ----------------------------------------------
 
     # Through-cell voltage distribution
-    alpha = 1 / (param.epsilon ** 2 * param.sigma_cp * param.L_cp) + 1 / (
-        param.epsilon ** 2 * param.sigma_cn * param.L_cn
-    )
-
-    V_through_cell = V_through_cell_av - (I_app / param.Ly) * alpha * W
+    # alpha = 1 / (param.epsilon ** 2 * param.sigma_cp * param.L_cp) + 1 / (
+    # param.epsilon ** 2 * param.sigma_cn * param.L_cn
+    # )
+    # V_through_cell = V_through_cell_av - (I_app / param.Ly) * alpha * W
 
     # negative current collector potential
-    sigma_cn_prime = param.epsilon * param.sigma_cn
-    sigma_cp_prime = param.epsilon * param.sigma_cp
-    phi_c_n = (I_app * psi - sigma_cp_prime * param.L_cp * V_through_cell) / (
-        sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
-    )
+    phi_c_n = I_app * R_c_n_array
+    # sigma_cn_prime = param.epsilon * param.sigma_cn
+    # sigma_cp_prime = param.epsilon * param.sigma_cp
+    # phi_c_n = (I_app * psi - sigma_cp_prime * param.L_cp * V_through_cell) / (
+    # sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
+    # )
 
     # positive current collector potential
-    phi_c_p = (I_app * psi + sigma_cn_prime * param.L_cn * V_through_cell) / (
-        sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
-    )
+    phi_c_p = V - I_app * R_c_p_array
+    # phi_c_p = (I_app * psi + sigma_cn_prime * param.L_cn * V_through_cell) / (
+    #     sigma_cn_prime * param.L_cn + sigma_cp_prime * param.L_cp
+    # )
 
     # negative solid potential
-    phi_s_n = phi_c_n + I_app / (2 * param.sigma_n * param.L_n * param.Ly) * mesh.x_n * (
-        2 * param.L_n - mesh.x_n
-    )
+    phi_s_n = phi_c_n - I_app / (
+        2 * param.sigma_n * param.L_n * param.Ly
+    ) * mesh.x_n * (2 * param.L_n - mesh.x_n)
 
     # positive solid potential
     phi_s_p = phi_c_p + I_app * (mesh.x_p - 1) * (1 - 2 * param.L_p - mesh.x_p) / (
@@ -582,14 +693,14 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     phi_e_prime = (
         -np.mean(u_n)
         - eta_n_av
-        - 2 * (1 - param.t_plus) * np.log(np.mean(c_e_n))
+        - (2/param.Lambda) * (1 - param.t_plus) * np.log(np.mean(c_e_n))
         + (param.delta * param.nu * I_app * param.L_n)
-        / (param.Ly * param.electrolyte_conductivity(1))
+        / (param.Ly * param.electrolyte_conductivity(1) * param.Lambda)
         * (
             1 / (3 * param.epsilon_n ** param.brug)
             - 1 / (3 * param.epsilon_s ** param.brug)
         )
-        - I_app * param.L_n / 2 / param.sigma_n / param.Ly
+        - I_app * param.L_n / 2 / param.sigma_n / param.Ly / param.Lambda
         + phi_c_n
     )
     # note: need to add phi_c_n in pouch cell case (value on boundary)
@@ -597,12 +708,12 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     # negative electrolyte potential
     phi_e_n = (
         phi_e_prime
-        + 2 * (1 - param.t_plus) * np.log(c_e_n)
+        + (2/param.Lambda) * (1 - param.t_plus) * np.log(c_e_n)
         - (
             param.delta
             * I_app
             * param.nu
-            / (param.electrolyte_conductivity(1) * param.Ly)
+            / (param.electrolyte_conductivity(1) * param.Ly * param.Lambda)
         )
         * (
             (mesh.x_n ** 2 - param.L_n ** 2)
@@ -614,12 +725,12 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     # separator electrolyte potential
     phi_e_s = (
         phi_e_prime
-        + 2 * (1 - param.t_plus) * np.log(c_e_s)
+        + (2/param.Lambda) * (1 - param.t_plus) * np.log(c_e_s)
         - (
             param.delta
             * I_app
             * param.nu
-            / (param.electrolyte_conductivity(1) * param.Ly)
+            / (param.electrolyte_conductivity(1) * param.Ly * param.Lambda)
         )
         * mesh.x_s
     )
@@ -627,12 +738,12 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     # positive electrolyte potential
     phi_e_p = (
         phi_e_prime
-        + 2 * (1 - param.t_plus) * np.log(c_e_p)
+        + (2/param.Lambda) * (1 - param.t_plus) * np.log(c_e_p)
         - (
             param.delta
             * I_app
             * param.nu
-            / (param.electrolyte_conductivity(1) * param.Ly)
+            / (param.electrolyte_conductivity(1) * param.Ly * param.Lambda)
         )
         * (
             (mesh.x_p * (2 - mesh.x_p) + param.L_p ** 2 - 1)
@@ -646,20 +757,30 @@ def fast_pouch_cell(t, y, psi, W, R_CC, param, mesh):
     eta_p = phi_s_p - phi_e_p - u_p
 
     # interfacial current density (j)
-    j_n = j0_n * np.sinh(eta_n / 2)
+    j_n = j0_n * np.sinh(param.Lambda * eta_n / 2)
 
-    j_p = j0_p * np.sinh(eta_p / 2)
+    j_p = j0_p * np.sinh(param.Lambda * eta_p / 2)
+
+
+    # correct the currents 
+    j_n = I_app / param.L_n / param.Ly + (j_n - np.mean(j_n))
+    j_p = - I_app / param.L_p / param.Ly + (j_p - np.mean(j_p))
+
+
 
     # Update concentrations --------------------------------------------------
-    # TODO: change the updater functions
 
     # Update particle concentrations
-    dcdt_s_n = rhs_many_particle(t, c_p, mesh, param, j_n)
-    dcdt_s_p = rhs_many_particle(t, c_n, mesh, param, j_p)
+    dcdt_s = rhs_many_particle(t, c_s_n, c_s_p, j_n, j_p, param, mesh)
 
     # Update electrolyte concentration
     c_e = np.concatenate([c_e_n, c_e_s, c_e_p])
-    dcdt_e = rhs_electrolye(t, c_e, mesh, param, I_app / param.Ly)
+    dcdt_e = averaged_electrolyte(t, c_e, I_app, param, mesh)
+
+    # print('time:', t, ',    voltage:', V)
+    print('c_s_n', np.mean(c_s_n), 'c_s_p', np.mean(c_s_p))
+
+    
 
     # Concatenate RHS
-    return np.concatenate((dcdt_s_n, dedt_e))
+    return np.concatenate((dcdt_s, dcdt_e))

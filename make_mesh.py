@@ -25,6 +25,7 @@ class FiniteVolumeMesh(object):
         self.Nr = Nr
         self.r = np.linspace(0, 1, Nr)
         self.dr = self.r[1] - self.r[0]
+        self.r = np.reshape(self.r, [1, 1, 1, len(self.r)])
 
         # Aim to make grid as uniform as possible
         targetmeshsize = min(param.L_n, param.L_s, param.L_p) / N_pts
@@ -33,16 +34,19 @@ class FiniteVolumeMesh(object):
         self.Nx_n = round(param.L_n / targetmeshsize) + 1
         self.x_n = np.linspace(0.0, param.L_n, self.Nx_n)
         self.dx_n = self.x_n[1] - self.x_n[0]
+        self.x_n = np.reshape(self.x_n, [len(self.x_n), 1, 1])
 
         # Separator grid
         self.Nx_s = round(param.L_s / targetmeshsize) + 1
         self.x_s = np.linspace(param.L_n, 1 - param.L_p, self.Nx_s)
         self.dx_s = self.x_s[1] - self.x_s[0]
+        self.x_s = np.reshape(self.x_s, [len(self.x_s), 1, 1])
 
         # Positive electrode grid
         self.Nx_p = round(param.L_p / targetmeshsize) + 1
         self.x_p = np.linspace(1 - param.L_p, 1, self.Nx_p)
         self.dx_p = self.x_p[1] - self.x_p[0]
+        self.x_p = np.reshape(self.x_p, [len(self.x_p), 1, 1])
 
         # Times to compute solution at
         self.t_final = t_final / param.tau_d_star

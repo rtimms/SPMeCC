@@ -92,12 +92,13 @@ def get_fast_pouch_cell_vars(soln, mesh):
 
     # reshape electrolyte for multiplying with particles
     c_e_n = np.reshape(c_e_n, [len(c_e_n), 1, 1])
+    c_e_s = np.reshape(c_e_s, [len(c_e_s), 1, 1])
     c_e_p = np.reshape(c_e_p, [len(c_e_p), 1, 1])
 
     return c_s_n, c_s_p, c_e_n, c_e_s, c_e_p
 
 
-def voltage_cutoff(t, y, psi, W, R_CC, param, mesh):
+def voltage_cutoff(t, y, R_CC, param, mesh):
     # Find I_app
     I_app = current(t, param)
 
@@ -105,8 +106,10 @@ def voltage_cutoff(t, y, psi, W, R_CC, param, mesh):
     c_s_n, c_s_p, c_e_n, c_e_s, c_e_p = get_fast_pouch_cell_vars(y, mesh)
 
     # Surface concentration for BV
-    c_s_n_surf = c_s_n[:, :, -1] + (c_s_n[:, :, -1] - c_s_n[:, :, -2]) / 2
-    c_s_p_surf = c_s_p[:, :, -1] + (c_s_p[:, :, -1] - c_s_p[:, :, -2]) / 2
+    c_s_n_surf = c_s_n[:, :, :, -1] + (c_s_n[:, :, :, -1] - c_s_n[:, :, :, -2]) / 2
+    c_s_p_surf = c_s_p[:, :, :, -1] + (c_s_p[:, :, :, -1] - c_s_p[:, :, :, -2]) / 2
+
+    # Find voltage ----------------------------------
 
     # average ocv
     T0 = 1
@@ -139,14 +142,14 @@ def voltage_cutoff(t, y, psi, W, R_CC, param, mesh):
     j0_n_av = np.mean(j0_n)
     j0_p_av = np.mean(j0_p)
 
-    eta_n_av = 2 * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
-    eta_p_av = -2 * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly)
+    eta_n_av = (2 / param.Lambda) * np.arcsinh(I_app / j0_n_av / param.L_n / param.Ly)
+    eta_p_av = -(2 / param.Lambda) * np.arcsinh(I_app / j0_p_av / param.L_p / param.Ly)
     eta_r_av = eta_p_av - eta_n_av
 
     # average concentration overpotential
     c_e_n_av = np.mean(c_e_n) / param.L_n
     c_e_p_av = np.mean(c_e_p) / param.L_p
-    eta_c_av = 2 * (1 - param.t_plus) * np.log(c_e_p_av / c_e_n_av)
+    eta_c_av = (2/param.Lambda) * (1 - param.t_plus) * np.log(c_e_p_av / c_e_n_av)
 
     # average electrolyte ohmic losses
     Delta_Phi_elec_av = -(
@@ -173,12 +176,12 @@ def voltage_cutoff(t, y, psi, W, R_CC, param, mesh):
     )
 
     # Average current collector ohmic losses
-    Delta_Phi_CC = -param.delta * I_app * R_CC
+    Delta_Phi_CC = -I_app * R_CC
 
-    # Terminal voltagt
+    # Terminal voltage
     V = V_through_cell_av + Delta_Phi_CC
 
-    return voltage - param.V_min
+    return V * param.Lambda - param.V_min
 
 
 def empty_particle(t, y, mesh):
