@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 import make_parameters
 from effective_cc_resistance import solve_psi_W
+import cc_potential_solve
 import make_mesh
 import make_rhs
 import make_plots as myplot
@@ -51,6 +52,9 @@ c_e_pts = x_pts
 
 # Solve psi, W problems and compute effective resistance -----------------------
 degree = 1  # Degree of polynomial (probably need deg=1 to extract values at nodes)
+R_c_n, R_c_p, R_CC = cc_potential_solve.solve_cc_potentials(
+    param, mesh.N_y - 1, mesh.N_z - 1, degree
+)
 psi, W, R_CC, R_cn, R_cp = solve_psi_W(param, mesh.N_y - 1, mesh.N_z - 1, degree)
 
 # TODO: sort so that size doesn't change with degree of polynomial
