@@ -10,6 +10,8 @@
 
 # this should all collapse down onto the same equations if we rescale the R_c_ks by the rhs of their respective problems. The only difference is the tab position.
 
+# Additionally, this form appears to converge faster to the value of R_CC from running both this code and the other and increasing the number of electrode points. Note that the R_cc outputted here is actually param.delta * R_CC from the psi-W method. This might be something to do with evaluating at boundary points which are not the actual boundary points in the psi-W scheme. This method instead just takes the average R_c_k which is probably better.
+
 import dolfin as df
 import numpy as np
 
@@ -94,19 +96,6 @@ def solve_cc_potentials(param, Ny, Nz, degree=1):
             else:
                 raise ValueError("Pos. tab location must be one of " "t, b, l, r!")
 
-    # Initialize sub-domain instances fot tabs
-    # negative_tab = NegativeTab()
-    # positive_tab = PositiveTab()
-
-    # # Initialize mesh function for boundary domains
-    # boundary_markers = df.MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-    # boundary_markers.set_all(0)
-    # negative_tab.mark(boundary_markers, 1)
-    # positive_tab.mark(boundary_markers, 2)
-
-    # Create measure of parts of the boundary
-    # ds = df.Measure("ds", domain=mesh, subdomain_data=boundary_markers)
-
     # Define functions space to solve R_c_n and R_c_p on
     V = df.FunctionSpace(mesh, "CG", degree)
 
@@ -146,12 +135,10 @@ def solve_cc_potentials(param, Ny, Nz, degree=1):
     df.solve(a_p == L_p, R_c_p, bc_positive_tab)
 
     # Compute R_CC
-    # note assume uniform mesh here
+    # note I assume a uniform mesh here hoping that this is valid
     R_c_n_av = np.mean(R_c_n.vector()[:])
     R_c_p_av = np.mean(R_c_p.vector()[:])
 
     R_CC = R_c_n_av + R_c_p_av
 
-    # try create a list of the nodes
-
-    return R_cn, R_cp, R_CC
+    return R_c_n, R_c_p, R_CC

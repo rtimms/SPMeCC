@@ -18,7 +18,7 @@ param = make_parameters.Parameters(C_rate, "mypouch")
 
 
 # Make grids ------------------------------------------------------------------
-mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=3, N_y=15, N_z=15)
+mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=3, N_y=10, N_z=10)
 
 # number of points required by each variable
 x_neg_pts = mesh.Nx_n
@@ -50,16 +50,14 @@ c_e_s_pts = x_sep_pts
 c_e_p_pts = x_pos_pts
 c_e_pts = x_pts
 
-# Solve psi, W problems and compute effective resistance -----------------------
+# Calculate current collector resistances -----------------------
 degree = 1  # Degree of polynomial (probably need deg=1 to extract values at nodes)
-R_c_n, R_c_p, R_CC = cc_potential_solve.solve_cc_potentials(
+R_c_n, R_c_p, R_cc = cc_potential_solve.solve_cc_potentials(
     param, mesh.N_y - 1, mesh.N_z - 1, degree
 )
-psi, W, R_CC, R_cn, R_cp = solve_psi_W(param, mesh.N_y - 1, mesh.N_z - 1, degree)
 
-# TODO: sort so that size doesn't change with degree of polynomial
-psi_mat = np.reshape(psi.vector()[:], [1, mesh.N_y, mesh.N_z])
-W_vec = np.reshape(W.vector()[:], [1, mesh.N_y, mesh.N_z])
+R_c_n_array = np.reshape(R_c_n.vector()[:], [1, mesh.N_y, mesh.N_z])
+R_c_p_array = np.reshape(R_c_p.vector()[:], [1, mesh.N_y, mesh.N_z])
 
 # Initial conditions ----------------------------------------------------------
 c_n_0 = param.c_n_0 * np.ones(c_s_n_pts)

@@ -226,8 +226,4 @@ def solve_psi_W(param, Ny, Nz, degree=1):
         df.inner(grad_phi_cp, grad_phi_cp) * df.dx
     )
 
-    # try create a list of the nodes
-    W_vec = W.vector()[:]
-    pts = mixed_functionspace.dof
-
     return psi, W, R_CC, R_cn, R_cp
