@@ -149,7 +149,7 @@ def voltage_cutoff(t, y, R_CC, param, mesh):
     # average concentration overpotential
     c_e_n_av = np.mean(c_e_n) / param.L_n
     c_e_p_av = np.mean(c_e_p) / param.L_p
-    eta_c_av = (2/param.Lambda) * (1 - param.t_plus) * np.log(c_e_p_av / c_e_n_av)
+    eta_c_av = (2 / param.Lambda) * (1 - param.t_plus) * np.log(c_e_p_av / c_e_n_av)
 
     # average electrolyte ohmic losses
     Delta_Phi_elec_av = -(
@@ -181,7 +181,28 @@ def voltage_cutoff(t, y, R_CC, param, mesh):
     # Terminal voltage
     V = V_through_cell_av + Delta_Phi_CC
 
-    return V * param.Lambda - param.V_min
+    voltage_condition = V[0] - param.V_min
+
+    # above max surface concentration
+    min_condition = c_s_n_surf.min() * c_s_p_surf.min()
+    max_condition = (1 - c_s_n_surf.max()) * (1 - c_s_p_surf.max())
+
+
+    if (
+        V[0] <= param.V_min
+        or c_s_n_surf.min() < 0
+        or c_s_p_surf.min() < 0
+        or c_s_n_surf.max() > 1
+        or c_s_p_surf.max() > 1
+        or c_e_n.min() <= 0
+        or c_e_s.min() <= 0
+        or c_e_p.min() <= 0
+    ):
+        condition = 0
+    else:
+        condition = 1
+
+    return condition
 
 
 def empty_particle(t, y, mesh):

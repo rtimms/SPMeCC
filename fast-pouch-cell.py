@@ -18,9 +18,7 @@ param = make_parameters.Parameters(C_rate, "mypouch")
 
 
 # Make grids ------------------------------------------------------------------
-mesh = make_mesh.FiniteVolumeMesh(
-    param, Nr=3, N_pts=3, N_y=10, N_z=10, t_steps=1000, t_final=0.14
-)
+mesh = make_mesh.FiniteVolumeMesh(param, Nr=3, N_pts=3, N_y=10, N_z=10, t_steps=1000)
 
 # number of points required by each variable
 x_neg_pts = mesh.Nx_n
@@ -76,20 +74,49 @@ def voltage_cutoff_wrapper(t, y):
 
 voltage_cutoff_wrapper.terminal = True
 
+
 # Solve IVP --------------------------------------------
+print("Testing the electrolyte equation")
+I_app = 1
+soln = solve_ivp(
+    lambda t, c_e: make_rhs.averaged_electrolyte(t, c_e, I_app, param, mesh),
+    [mesh.t[0], mesh.t[-1]],
+    c_e_0,
+    t_eval=mesh.t,
+    rtol=1e-1,
+    atol=1e-1,
+    method="BDF",
+)
+
+print("Test a particle equations")
+I_app = 1
+c_n_0 = param.c_n_0 * np.ones(mesh.Nr)
+c_p_0 = param.c_p_0 * np.ones(mesh.Nr)
+c_s_0 = np.concatenate((c_n_0, c_p_0))
+soln = solve_ivp(
+    lambda t, c_s: make_rhs.test_rhs_many_particles(t, c_s, I_app, param, mesh),
+    [mesh.t[0], mesh.t[-1]],
+    c_s_0,
+    t_eval=mesh.t,
+    rtol=1e-1,
+    atol=1e-1,
+    method="BDF",
+)
+
+
 print("Solving Fast Pouch Cell.")
 soln = solve_ivp(
     lambda t, y: make_rhs.fast_pouch_cell(
         t, y, R_c_n_array, R_c_p_array, R_cc, param, mesh
     ),
-    [mesh.t[0], mesh.t[-1]],
+    [0, 1],
     y_0,
-    t_eval=mesh.t,
-    rtol=1e-1,
-    atol=1e-1,
+    rtol=1e-8,
+    atol=1e-8,
     method="BDF",
     events=[voltage_cutoff_wrapper],
 )
+
 # soln = solve_ivp(
 #     lambda t, y: make_rhs.fast_pouch_cell(
 #         t, y, R_c_n_array, R_c_p_array, R_cc, param, mesh
