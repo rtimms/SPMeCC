@@ -17,17 +17,17 @@ ffc_options = {
 
 # Visualisation ---------------------------------------------------------------
 timeplots = False  # If true plots at each time are displayed
-file_V = File("output/BAMC/tb_1C/V.pvd", "compressed")  # File to save output to
-file_I = File("output/BAMC/tb_1C/I.pvd", "compressed")  # File to save output to
-file_cn = File("output/BAMC/tb_1C/cn.pvd", "compressed")  # File to save output to
-file_cp = File("output/BAMC/tb_1C/cp.pvd", "compressed")  # File to save output to
-file_T = File("output/BAMC/tb_1C/T.pvd", "compressed")  # File to save output to
+file_V = File("output/output_1C/V.pvd", "compressed")  # File to save output to
+file_I = File("output/output_1C/I.pvd", "compressed")  # File to save output to
+file_cn = File("output/output_1C/cn.pvd", "compressed")  # File to save output to
+file_cp = File("output/output_1C/cp.pvd", "compressed")  # File to save output to
+file_T = File("output/output_1C/T.pvd", "compressed")  # File to save output to
 
 
 # Load parameters -------------------------------------------------------------
 C_rate = 1.0
 # param = Parameters(C_rate)
-param = myparams(C_rate, "mypouch_B")
+param = myparams(C_rate, "mypouch")
 
 # Initial and boundary conditions ---------------------------------------------
 I_app = 1.0  # Applied current (TO DO: make function of time)
@@ -48,7 +48,7 @@ dVdn_positivetab = Constant(
 
 # Timestepping ----------------------------------------------------------------
 t = 0.0  # initial time
-t_final = (900) / param.tau_d_star  # final time
+t_final = (3600) / param.tau_d_star  # final time
 dt = 15 / param.tau_d_star  # step size
 
 

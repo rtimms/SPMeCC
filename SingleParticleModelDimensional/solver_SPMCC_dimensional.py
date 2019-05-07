@@ -32,11 +32,11 @@ I_app_1C = 20
 I_app_period = 50
 
 # Geometry
-L_cn = 0.25 * 1E-3 / 20
-L_n = 2.7 * 1E-3 / 40
+L_cn = 0.25 * 1E-3
+L_n = 2.7 * 1E-3
 L_s = 0.0
-L_p = 2.7 * 1E-3 / 40
-L_cp = 0.25 * 1E-3 / 20
+L_p = 2.7 * 1E-3
+L_cp = 0.25 * 1E-3
 
 L_x = L_cn + L_n + L_p + L_cp
 L_y = 150 * 1E-3
@@ -164,7 +164,7 @@ def Q_bar(psi, V, I, c_n, c_p, T):
     Q_cn = L_cn * sigma_cn * inner(grad(phi_cn), grad(phi_cn))
     Q_cp = L_cp * sigma_cp * inner(grad(phi_cp), grad(phi_cp))
     Q_rxn = - I * (eta_p(I, c_p, T) - eta_n(I, c_n, T))
-    Q_rev = - 0*I * T * dUdT
+    Q_rev = - I * T * dUdT
     return (Q_cn + Q_cp + Q_rxn + Q_rev) / L
 
 

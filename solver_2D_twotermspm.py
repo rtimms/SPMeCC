@@ -25,7 +25,7 @@ file_T = File("output/T.pvd", "compressed")  # File to save output to
 
 
 # Load parameters -------------------------------------------------------------
-C_rate = 2.0
+C_rate = 1.0
 # param = Parameters(C_rate)
 param = myparams(C_rate, "mypouch")
 
@@ -49,43 +49,44 @@ dVdn_positivetab = Constant(
 
 # Timestepping ----------------------------------------------------------------
 t = 0.0  # initial time
-t_final = (10 * 60) / param.tau_d_star  # final time
+t_final = (3600) / param.tau_d_star  # final time
 dt = 15 / param.tau_d_star  # step size
 
 
 # Open circuit potentials -----------------------------------------------------
+def mytanh(x):
+    return (exp(x) - exp(-x)) / (exp(x) + exp(-x))
+
+
 def U_n(c, T, param):
     U_ref = (
-        0.7222
-        + 0.1387 * c
-        + 0.029 * c ** 0.5
-        - 0.0172 / c
-        + 0.0019 / (c ** 1.5)
-        + 0.2808 * exp(0.9 - 15 * c)
-        - 0.7984 * exp(0.4465 * c - 0.4108)
+        0.194
+        + 1.5 * exp(-120.0 * c)
+        + 0.0351 * mytanh((c - 0.286) / 0.083)
+        - 0.0045 * mytanh((c - 0.849) / 0.119)
+        - 0.035 * mytanh((c - 0.9233) / 0.05)
+        - 0.0147 * mytanh((c - 0.5) / 0.034)
+        - 0.102 * mytanh((c - 0.194) / 0.142)
+        - 0.022 * mytanh((c - 0.9) / 0.0164)
+        - 0.011 * mytanh((c - 0.124) / 0.0226)
+        + 0.0155 * mytanh((c - 0.105) / 0.029)
     )
-    result = (U_ref / param.Phi_star) + T * dUdT_n(c, param)
-    return result
+    return (U_ref / param.Phi_star) + T * dUdT_n(c, param)
 
 
 def U_p(c, T, param):
+    stretch = 1.062
+    sto = stretch * c
     U_ref = (
-        -4.656
-        + 88.669 * c ** 2
-        - 401.119 * c ** 4
-        + 342.909 * c ** 6
-        - 462.471 * c ** 8
-        + 433.434 * c ** 10
-    ) / (
-        -1
-        + 18.933 * c ** 2
-        - 79.532 * c ** 4
-        + 37.311 * c ** 6
-        - 73.083 * c ** 8
-        + 95.96 * c ** 10
+        2.16216
+        + 0.07645 * mytanh(30.834 - 54.4806 * sto)
+        + 2.1581 * mytanh(52.294 - 50.294 * sto)
+        - 0.14169 * mytanh(11.0923 - 19.8543 * sto)
+        + 0.2051 * mytanh(1.4684 - 5.4888 * sto)
+        + 0.2531 * mytanh((-sto + 0.56478) / 0.1316)
+        - 0.02167 * mytanh((sto - 0.525) / 0.006)
     )
-    result = (U_ref / param.Phi_star) + T * dUdT_p(c, param)
-    return result
+    return (U_ref / param.Phi_star) + T * dUdT_n(c, param)
 
 
 def dUdT_n(c, param):
@@ -189,8 +190,10 @@ def Q_bar(psi, V, I, c_n, c_p, T, param):
 def c_n_surf(c_n_av, I):
     return c_n_av - (I / param.L_n) / (param.beta_n * param.C_hat_n * param.gamma_n)
 
+
 def c_p_surf(c_p_av, I):
     return c_p_av - (-I / param.L_p) / (param.beta_p * param.C_hat_p * param.gamma_p)
+
 
 # Meshing ---------------------------------------------------------------------
 # Create mesh
@@ -387,17 +390,24 @@ while t < t_final:
         + dt * param.lambda_x * inner(grad(T), grad(T_test)) * dx
         - dt * param.B * Q_bar(psi, V, I, c_n, c_p, T, param) * T_test * dx
         + dt * (2 * param.h_prime / param.L) * T * T_test * dx
-        + dt
-        * param.epsilon * param.h_prime * T * T_test * ds(0)
+        + dt * param.epsilon * param.h_prime * T * T_test * ds(0)
         + dt
         * (param.epsilon / param.L)
-        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime - param.h_prime * param.L)
+        * (
+            (param.h_tab_prime * (param.L_cn + param.L_cp))
+            + param.h_prime
+            - param.h_prime * param.L
+        )
         * T
         * T_test
         * ds(1)
         + dt
         * (param.epsilon / param.L)
-        * ((param.h_tab_prime * (param.L_cn + param.L_cp)) + param.h_prime - param.h_prime * param.L)
+        * (
+            (param.h_tab_prime * (param.L_cn + param.L_cp))
+            + param.h_prime
+            - param.h_prime * param.L
+        )
         * T
         * T_test
         * ds(2)
