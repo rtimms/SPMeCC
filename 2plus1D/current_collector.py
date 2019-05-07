@@ -1,5 +1,6 @@
 import dolfin as df
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class CCVoltage(object):
@@ -111,7 +112,7 @@ class CCVoltage(object):
 
         # Create stifnness matrix
         K_form = df.inner(df.grad(self.TrialFunction), df.grad(self.TestFunction)) * df.dx
-        self.stiffness = df.assemble(K_form).array()
+        self.stiffness = df.assemble(K_form)
 
         # Create load vectors for tabs
         neg_tab_form = self.dVdn_negativetab * self.TestFunction * self.ds(1)
@@ -119,9 +120,10 @@ class CCVoltage(object):
         self.load_tab_n = df.assemble(neg_tab_form).get_local()[:]
         self.load_tab_p = df.assemble(pos_tab_form).get_local()[:]
 
-        # Set functions for V and I
+        # Set functions for V, I and rhs
         self.voltage = df.Function(self.element)
         self.current = df.Function(self.element)
+        self.rhs = df.Function(self.element)
 
         # Number of degrees of freedom
         self.N_dofs = np.size(self.voltage.vector()[:])
@@ -133,17 +135,38 @@ class CCVoltage(object):
         "Update the entries of the through-cell current density."
         self.current.vector()[:] = current
 
+    def get_voltage(self):
+        " Returns the voltage as an array"
+        return self.voltage.vector()[:]
+
+    def plot(self):
+        " Plot voltage and through-cell current density."
+        plt.figure(1, figsize=(15, 9))
+        plt.subplot(1, 2, 1)
+        p1 = df.plot(self.voltage)
+        plt.xlabel('y')
+        plt.ylabel('z')
+        plt.title("V")
+        plt.colorbar(p1)
+        plt.subplot(1, 2, 2)
+        p2 = df.plot(self.current)
+        plt.xlabel('y')
+        plt.ylabel('z')
+        plt.title("I")
+        plt.colorbar(p2)
+        plt.show()
+
     def solve(self):
         "Solve the linear system K*V = b"
         # Right hand side
-        b = (self.load_tab_n + self.load_tab_p
-             + np.dot(self.mass, self.alpha * self.current.vector()))
+        self.rhs.vector()[:] = (self.load_tab_n + self.load_tab_p
+                                + np.dot(self.mass, self.alpha * self.current.vector()[:]))
 
         # Store old values for error computation
-        voltage_prev = self.voltage.vector()[:]
+        voltage_prev = self.voltage
 
         # Solve
-        df.solve(self.stiffness, self.voltage.vector(), b)
+        df.solve(self.stiffness, self.voltage.vector(), self.rhs.vector())
 
         # Update difference in solution
-        self.voltage_difference = np.linalg.norm(voltage_prev - self.voltage.vector()[:])
+        self.voltage_difference = np.linalg.norm(voltage_prev.vector()[:] - self.voltage.vector()[:])

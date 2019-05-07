@@ -1,5 +1,6 @@
 from make_parameters import Parameters
 from current_collector import CCVoltage
+import numpy as np
 
 
 # Load parameters -------------------------------------------------------------
@@ -10,13 +11,17 @@ param = Parameters(C_rate, 'mypouch')
 # Create class for current collector problem ----------------------------------
 Ny, Nz = 10, 10  # Number of gridpoints
 degree = 1  # Degree of polynomial
-CC_model = CCVoltage(param, Ny, Nz, degree)
+current_collector_model = CCVoltage(param, Ny, Nz, degree)
 
 # Assemble matrices for current collector problem -----------------------------
-CCVoltage.assemble()
+current_collector_model.assemble()
 
 # Get initial through-cell current from external model ------------------------
 # GET CONSISTANT ICs
+
+# test e.g. current 1 everywhere
+current = np.ones(np.size(current_collector_model.get_voltage()))
+current_collector_model.update_current_values(current)
 
 # Timestepping ----------------------------------------------------------------
 t = 0.0  # initial time
@@ -29,11 +34,14 @@ while t < t_final:
     # Increase time
     t += dt
 
-    while CCVoltage.voltage_difference > tol:
+    while current_collector_model.voltage_difference > tol:
 
         # Update voltage
-        CCVoltage.solve()
+        current_collector_model.solve()
 
         # Compute new through-cell current
         # DO SOMETHING
-        CCVoltage.update_current_values()
+        current_collector_model.update_current_values(current)
+
+    # test plotting
+    current_collector_model.plot()
